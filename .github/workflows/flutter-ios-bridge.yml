@@ -39,13 +39,14 @@ jobs:
     timeout-minutes: 60
     defaults:
       run:
-        working-directory: .
+        working-directory: mobile_app
     env:
-      OUT: ${{ github.workspace }}/bridge-out
+      OUT: ${{ github.workspace }}/mobile_app/bridge-out
       BUILD_NAME: ${{ inputs.build_name }}
       BUILD_NUMBER: ${{ inputs.build_number }}
       BUILD_TYPE: ${{ inputs.build_type }}
       EXPORT_METHOD: ${{ inputs.export_method }}
+      MONOREPO_ROOT: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
 
@@ -123,7 +124,7 @@ jobs:
           done
 
           if [ "$EXPORT_METHOD" = "development" ]; then IDENTITY="Apple Development"; else IDENTITY="Apple Distribution"; fi
-          python3 "$GITHUB_WORKSPACE/.github/scripts/ios_manual_signing.py" \
+          python3 "$MONOREPO_ROOT/.github/scripts/ios_manual_signing.py" \
             ios/Runner.xcodeproj/project.pbxproj "$BUNDLE_ID" "$TEAM_ID" "$PROFILE_NAME" "$IDENTITY"
 
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
@@ -171,7 +172,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-${{ inputs.build_type }}
-          path: bridge-out/
+          path: mobile_app/bridge-out/
           retention-days: 14
 
       - name: Summary
