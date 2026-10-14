@@ -1,0 +1,41 @@
+plugins {
+    id 'com.android.application'
+    id 'kotlin-android'
+    id 'dev.flutter.flutter-gradle-plugin'
+}
+
+android {
+    namespace 'com.example.admin'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "com.example.admin"
+        minSdkVersion flutter.minSdkVersion
+        targetSdk 36
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Important : Fixe le JVM target pour Kotlin
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+}
+
+flutter {
+    source '../..'
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+}

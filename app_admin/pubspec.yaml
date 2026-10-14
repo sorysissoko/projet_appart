@@ -1,0 +1,112 @@
+name: admin
+description: Application de gestion immobilière - Dashboard Admin
+
+# Empêche la publication accidentelle sur pub.dev
+publish_to: 'none'
+
+# Version de l'application
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.5.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ─── LOCALISATION ───
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.2
+
+  # ─── SERVICES (package local) ───
+  service:
+    path: ../services
+
+  # ─── UI ET STYLING ───
+  cupertino_icons: ^1.0.8
+  google_fonts: ^8.2.1
+
+  flutter_svg: ^2.0.10
+  flutter_screenutil: ^5.9.0
+
+  # ─── GRAPHIQUES ───
+  fl_chart: ^0.68.0
+
+  # ─── STATE MANAGEMENT ───
+  provider: ^6.1.2
+
+  # ─── BASE DE DONNÉES ───
+  supabase_flutter: ^2.10.3
+
+  # ─── LOGGING ───
+  logger: ^2.5.0
+
+  # ─── FORMULAIRES ───
+  intl_phone_field: ^3.2.0
+  flutter_masked_text2: ^0.9.0
+
+  flutter_reorderable_grid_view: ^5.5.1
+
+  # ─── FICHIERS ───
+  file_picker: ^10.3.3
+  image_picker: ^1.0.7
+
+  # ─── NAVIGATION ───
+  go_router: ^14.0.0
+
+  # ─── CACHE ET STOCKAGE ───
+  shared_preferences: ^2.3.2
+
+  # ─── CONNEXION INTERNET ───
+  connectivity_plus: ^6.0.3
+
+  # ─── NOTIFICATIONS ───
+  flutter_local_notifications: ^17.0.0
+
+  # ─── UTILITAIRES ───
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+
+  # ─── LINTING ───
+  flutter_lints: ^5.0.0
+
+  # ─── GÉNÉRATION DE CODE ───
+  build_runner: ^2.4.12
+  json_serializable: ^6.8.0
+
+# ─── CONFIGURATION FLUTTER ───
+flutter:
+  uses-material-design: true
+
+  # ─── ASSETS ───
+  assets:
+    # Images
+    - assets/images/
+    - assets/images/profile_pic.png
+    - assets/images/mali.png
+    - assets/images/log.png
+    - assets/images/admin.png
+
+    # Icônes
+    - assets/icons/
+    - assets/icons/menu_doc.svg
+    - assets/icons/bridge.svg
+    - assets/icons/appart.svg
+    - assets/icons/housee.svg
+    - assets/icons/bko.svg
+    - assets/icons/cone.svg
+    - assets/icons/leaf.svg
+    - assets/icons/speedboat.svg
+    - assets/icons/hotel.svg
+    - assets/icons/menu_notification.svg
+    - assets/icons/menu_profile.svg
+    - assets/icons/menu_setting.svg
+    - assets/icons/menu_task.svg
+    - assets/icons/menu_tran.svg
+    - assets/icons/Search.svg

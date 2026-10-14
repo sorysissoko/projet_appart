@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <base href="$FLUTTER_BASE_HREF" />
+  <meta charset="UTF-8" />
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Admin - Gestion Immobilière" />
+  <meta name="theme-color" content="#E85D26" />
+
+  <!-- iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-title" content="Admin" />
+  <link rel="apple-touch-icon" href="icons/Icon-192.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="manifest" href="manifest.json" />
+
+  <title>Admin - Gestion Immobilière</title>
+
+  <style>
+    /* ... vos styles ... */
+  </style>
+</head>
+
+<body>
+<!-- LOADER -->
+<div id="loader">
+  <div class="brand">Admin<span>.</span></div>
+  <div class="spinner"></div>
+  <div class="dots">
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+  <div class="loader-text">Chargement...</div>
+</div>
+
+<!-- ===== SCRIPTS ===== -->
+
+<!-- ✅ 1. CHARGER PASSKEYS SDK EN PREMIER -->
+<script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"
+        type="application/javascript">
+</script>
+
+<!-- ✅ 2. FALLBACK SI LE SDK N'EST PAS CHARGÉ -->
+<script>
+  // Vérifier que Passkeys est chargé
+  function ensurePasskeysLoaded() {
+    if (typeof PasskeysWeb === 'undefined') {
+      console.warn('⚠️ Passkeys SDK non chargé, tentative de rechargement...');
+
+      // Créer un nouveau script avec une source alternative
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/@corbado/passkeys-web-sdk@2.4.0/bundle.min.js';
+      script.type = 'application/javascript';
+      script.onload = function() {
+        console.log('✅ Passkeys SDK chargé avec succès (fallback)');
+        // Déclencher l'événement pour Flutter
+        window.dispatchEvent(new Event('passkeys-loaded'));
+      };
+      script.onerror = function() {
+        console.error('❌ Impossible de charger Passkeys SDK');
+        // Créer un objet factice pour éviter les erreurs
+        window.PasskeysWeb = {
+          initialize: function() { return Promise.resolve(); }
+        };
+      };
+      document.head.appendChild(script);
+    } else {
+      console.log('✅ Passkeys SDK déjà chargé');
+      window.dispatchEvent(new Event('passkeys-loaded'));
+    }
+  }
+
+  // Attendre que le DOM soit prêt
+  if (document.readyState === 'complete') {
+    ensurePasskeysLoaded();
+  } else {
+    window.addEventListener('load', ensurePasskeysLoaded);
+  }
+</script>
+
+<!-- ✅ 3. SERVICE WORKER ET APPLICATION FLUTTER -->
+<script>
+  (function() {
+    'use strict';
+
+    const loader = document.getElementById('loader');
+
+    function hideLoader() {
+      if (loader) {
+        loader.classList.add('hidden');
+        setTimeout(() => { if (loader.parentNode) loader.remove(); }, 600);
+      }
+    }
+
+    // ✅ Service Worker - Désactivé en développement
+    if ('serviceWorker' in navigator) {
+      // Désactiver les SW existants
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('✅ Service Worker désactivé');
+        }
+      });
+
+      // Ne pas enregistrer de nouveau SW en développement
+      console.log('🔧 Mode développement: Service Worker désactivé');
+    }
+
+    // ✅ Attendre que Passkeys soit chargé avant de lancer Flutter
+    function loadFlutterApp() {
+      // Vérifier une dernière fois Passkeys
+      if (typeof PasskeysWeb === 'undefined') {
+        console.warn('⚠️ Passkeys SDK pas encore prêt, attente...');
+        // Attendre l'événement
+        window.addEventListener('passkeys-loaded', function() {
+          console.log('✅ Passkeys prêt, lancement de Flutter');
+          loadFlutterApp();
+        });
+        return;
+      }
+
+      console.log('✅ Tous les SDK chargés, lancement de Flutter');
+
+      window.addEventListener('flutter-first-frame', () => {
+        setTimeout(hideLoader, 300);
+      });
+    }
+
+    // Initialiser
+    if (document.readyState === 'complete') {
+      loadFlutterApp();
+    } else {
+      window.addEventListener('load', loadFlutterApp);
+    }
+
+    // Fallback (8 secondes max)
+    setTimeout(hideLoader, 8000);
+
+  })();
+</script>
+
+<!-- ✅ 4. MAIN FLUTTER APP -->
+<script src="main.dart.js" type="application/javascript"></script>
+
+</body>
+</html>
