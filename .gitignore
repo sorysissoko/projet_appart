@@ -1,0 +1,42 @@
+# Flutter/Dart
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Sous-projets
+**/build/
+**/.dart_tool/
+**/android/app/build/
+**/android/.gradle/
+**/android/local.properties
+**/android/key.properties
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/flutter_export_environment.sh
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/macos/Pods/
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Secrets
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+*.env
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db

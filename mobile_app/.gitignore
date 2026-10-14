@@ -1,3 +1,6 @@
+cd C:\Users\USER\StudioProjects\projet\mobile_app
+
+$gitignore = @'
 # ============================================================
 # FLUTTER / DART
 # ============================================================
@@ -40,10 +43,8 @@ android/app/debug/
 android/app/profile/
 android/app/release/
 
-# Rapports générés par Gradle
 **/build/reports/
 
-# Keystores / signatures
 *.jks
 *.keystore
 key.properties
@@ -97,7 +98,6 @@ windows/build/
 *.ipr
 *.iws
 
-# VS Code
 .vscode/
 
 
@@ -122,18 +122,7 @@ migrate_working_dir/
 .env.*
 !.env.example
 
-# Fichiers de configuration contenant potentiellement des secrets
 firebase_options.local.dart
-
-
-# ============================================================
-# FIREBASE / GOOGLE
-# ============================================================
-
-# À ignorer UNIQUEMENT si ces fichiers contiennent des informations
-# sensibles propres à l'environnement.
-# google-services.json
-# GoogleService-Info.plist
 
 
 # ============================================================
@@ -142,3 +131,7 @@ firebase_options.local.dart
 
 *.local
 *.local.*
+'@
+
+[System.IO.File]::WriteAllText("$PWD\.gitignore", $gitignore, (New-Object System.Text.UTF8Encoding $false))
+Write-Host "OK mobile_app\.gitignore reecrit en UTF-8 sans BOM"
