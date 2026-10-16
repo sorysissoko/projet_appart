@@ -40,10 +40,8 @@ class DateSelectorSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ==========================================================
-        // DATES DE SÉJOUR
-        // ==========================================================
 
+        // DATES DE SÉJOUR
         Text(
           'Dates de séjour',
           style: GoogleFonts.poppins(
@@ -121,9 +119,7 @@ class DateSelectorSection extends StatelessWidget {
           ),
         ),
 
-        // ==========================================================
         // DÉTAIL DU PRIX
-        // ==========================================================
 
         if (hasDates) ...[
           SizedBox(height: 12.h),
@@ -141,10 +137,8 @@ class DateSelectorSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ==================================================
-                // TITRE
-                // ==================================================
 
+                // TITRE
                 Text(
                   'Détail du prix',
                   style: GoogleFonts.poppins(
@@ -156,10 +150,7 @@ class DateSelectorSection extends StatelessWidget {
 
                 SizedBox(height: 14.h),
 
-                // ==================================================
                 // MESSAGE DE CONFLIT
-                // ==================================================
-
                 if (status == DateStatus.conflict)
                   Padding(
                     padding: EdgeInsets.only(bottom: 12.h),
@@ -207,19 +198,13 @@ class DateSelectorSection extends StatelessWidget {
 
                 SizedBox(height: 6.h),
 
-                // ==================================================
                 // PRIX PUBLIC PAR NUIT
-                // ==================================================
-
                 _buildPriceLine(
                   label: 'Prix par nuit',
                   value: pricePerNight,
                 ),
 
-                // ==================================================
                 // RÉDUCTION
-                // ==================================================
-
                 if (totalReduction > 0) ...[
                   SizedBox(height: 6.h),
 
@@ -239,10 +224,7 @@ class DateSelectorSection extends StatelessWidget {
 
                 SizedBox(height: 12.h),
 
-                // ==================================================
                 // TOTAL
-                // ==================================================
-
                 Row(
                   mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
@@ -274,10 +256,8 @@ class DateSelectorSection extends StatelessWidget {
     );
   }
 
-  // ==============================================================
-  // LIGNE DU DÉTAIL DU PRIX
-  // ==============================================================
 
+  // LIGNE DU DÉTAIL DU PRIX
   Widget _buildPriceLine({
     required String label,
     required double value,
@@ -325,10 +305,7 @@ class DateSelectorSection extends StatelessWidget {
     );
   }
 
-  // ==============================================================
   // FORMAT PRIX
-  // ==============================================================
-
   String _formatPrice(double value) {
     return value
         .toStringAsFixed(0)

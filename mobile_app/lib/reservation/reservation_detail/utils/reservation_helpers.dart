@@ -1,23 +1,41 @@
+import 'package:flutter/material.dart';
 import 'package:service/snackbar_service.dart';
 
 class ReservationHelpers {
   static void showAppSnackBar({
     required String message,
     required SnackBarType type,
+    IconData? icon,
     Duration duration = const Duration(seconds: 4),
   }) {
     switch (type) {
       case SnackBarType.success:
-        SnackBarService().showSuccess(message, duration: duration);
+        SnackBarService().showSuccess(
+          message,
+          icon: icon,
+          duration: duration,
+        );
         break;
       case SnackBarType.error:
-        SnackBarService().showError(message, duration: duration);
+        SnackBarService().showError(
+          message,
+          icon: icon,
+          duration: duration,
+        );
         break;
       case SnackBarType.warning:
-        SnackBarService().showWarning(message, duration: duration);
+        SnackBarService().showWarning(
+          message,
+          icon: icon,
+          duration: duration,
+        );
         break;
       case SnackBarType.info:
-        SnackBarService().showInfo(message, duration: duration);
+        SnackBarService().showInfo(
+          message,
+          icon: icon,
+          duration: duration,
+        );
         break;
     }
   }

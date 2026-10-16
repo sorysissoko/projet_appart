@@ -23,40 +23,34 @@ class PaymentMethod {
 
 class PaymentBottomSheet extends StatefulWidget {
   final double amount;
+  final double? totalAmount;
+  final bool isDeposit;
+  final int depositPercentage;
 
   final Function(
-    String method,
-    String? phone,
-    String? indicatifPaiement,
-    String? providerPaymentMethodId,
-    String? provider,
-    String? cardBrand,
-    String? cardLast4,
-  ) onSuccess;
+      String method,
+      String? phone,
+      String? indicatifPaiement,
+      String? providerPaymentMethodId,
+      String? provider,
+      String? cardBrand,
+      String? cardLast4,
+      ) onSuccess;
 
   final Map<String, dynamic> appartement;
-
   final int totalNights;
   final double totalPrice;
-
   final DateTime? startDate;
   final DateTime? endDate;
-
-  /// Numéro enregistré dans le compte du locataire.
-  ///
-  /// Exemple :
-  /// 70000000
   final String? initialPhone;
-
-  /// Indicatif enregistré dans le compte du locataire.
-  ///
-  /// Exemple :
-  /// +223
   final String? initialIndicatif;
 
   const PaymentBottomSheet({
     super.key,
     required this.amount,
+    this.totalAmount,
+    this.isDeposit = false,
+    this.depositPercentage = 30,
     required this.onSuccess,
     required this.appartement,
     required this.totalNights,
@@ -73,18 +67,13 @@ class PaymentBottomSheet extends StatefulWidget {
 }
 
 class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
-  // ============================================================
-  // ÉTAT
-  // ============================================================
 
+  // ÉTAT
   int step = 0;
 
   String? selectedMethod;
 
-  // ============================================================
   // CONTRÔLEURS
-  // ============================================================
-
   final TextEditingController phoneController =
   TextEditingController();
 
@@ -101,9 +90,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
   final PageController pageController =
   PageController();
 
-  // ============================================================
+
   // COULEURS
-  // ============================================================
 
   final Color _accentColor =
   const Color(0xFFE85D26);
@@ -123,9 +111,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
   final Color successGreen =
   const Color(0xFF00C853);
 
-  // ============================================================
+
   // PAYS
-  // ============================================================
 
   String selectedCountryCode = '+223';
 
@@ -284,10 +271,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     return null;
   }
 
-  // ============================================================
-  // MÉTHODES DE PAIEMENT
-  // ============================================================
 
+  // MÉTHODES DE PAIEMENT
   final List<PaymentMethod> methods = [
     PaymentMethod(
       id: 'orange_money',
@@ -319,10 +304,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     ),
   ];
 
-  // ============================================================
-  // INIT STATE
-  // ============================================================
 
+  // INIT STATE
   @override
   void initState() {
     super.initState();
@@ -977,26 +960,22 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
 
   Widget _buildSummaryBox() {
     final prixBase = subtotal;
+    final totalFinalValue = totalFinal;
+    final reduction = totalReduction;
+    final hasReduction = reduction > 0;
 
-    final totalFinalValue =
-        totalFinal;
+    final double montantAPayer = widget.amount;
 
-    final reduction =
-        totalReduction;
-
-    final hasReduction =
-        reduction > 0;
+    final double resteAPayer = widget.isDeposit
+        ? (totalFinalValue - montantAPayer)
+        : 0.0;
 
     return Container(
-      padding:
-      const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-        BorderRadius.circular(12),
-        border: Border.all(
-          color: borderGrey,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderGrey),
       ),
       child: Column(
         children: [
@@ -1004,16 +983,12 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
             'Prix par nuit',
             '${formatPrice(pricePerNight)} FCFA',
           ),
-
           const SizedBox(height: 8),
-
           _buildPriceRow(
             'Nombre de nuits',
             '$totalNights',
           ),
-
           const SizedBox(height: 8),
-
           _buildPriceRow(
             'Sous-total',
             '${formatPrice(prixBase)} FCFA',
@@ -1022,70 +997,182 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
           if (hasReduction) ...[
             const SizedBox(height: 8),
             Row(
-              mainAxisAlignment:
-              MainAxisAlignment
-                  .spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Réduction',
-                  style:
-                  GoogleFonts.poppins(
-                    color:
-                    successGreen,
-                  ),
+                  style: GoogleFonts.poppins(color: successGreen),
                 ),
                 Text(
                   '- ${formatPrice(reduction)} FCFA',
-                  style:
-                  GoogleFonts.poppins(
-                    color:
-                    successGreen,
-                    fontWeight:
-                    FontWeight.bold,
+                  style: GoogleFonts.poppins(
+                    color: successGreen,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ],
 
+          // TOTAL DU SÉJOUR
           const Padding(
-            padding:
-            EdgeInsets.symmetric(
-              vertical: 12,
-            ),
-            child: Divider(
-              height: 1,
-            ),
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
           ),
 
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment
-                .spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Total à payer',
-                style:
-                GoogleFonts.poppins(
+                'Total du séjour',
+                style: GoogleFonts.poppins(
                   color: textDark,
-                  fontWeight:
-                  FontWeight.bold,
-                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
               Text(
                 '${formatPrice(totalFinalValue)} FCFA',
-                style:
-                GoogleFonts.poppins(
-                  color:
-                  _accentColor,
-                  fontWeight:
-                  FontWeight.bold,
-                  fontSize: 18,
+                style: GoogleFonts.poppins(
+                  color: textDark,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
                 ),
               ),
             ],
           ),
+
+          if (widget.isDeposit) ...[
+            const SizedBox(height: 12),
+
+            //MONTANT À PAYER MAINTENANT
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E8),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _accentColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.payments_outlined,
+                            color: _accentColor,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Acompte (${widget.depositPercentage}%)',
+                            style: GoogleFonts.poppins(
+                              color: _accentColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${formatPrice(montantAPayer)} FCFA',
+                        style: GoogleFonts.poppins(
+                          color: _accentColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Divider(height: 1, color: Color(0xFFE8C7A8)),
+                  const SizedBox(height: 8),
+
+                  //RESTE À PAYER
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule,
+                            color: textGrey,
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Reste à payer plus tard',
+                            style: GoogleFonts.poppins(
+                              color: textGrey,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        '${formatPrice(resteAPayer)} FCFA',
+                        style: GoogleFonts.poppins(
+                          color: textGrey,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // SI TOTALITÉ : juste un récapitulatif clair
+          if (!widget.isDeposit) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E8),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: _accentColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline,
+                        color: _accentColor,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Total à payer',
+                        style: GoogleFonts.poppins(
+                          color: _accentColor,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '${formatPrice(montantAPayer)} FCFA',
+                    style: GoogleFonts.poppins(
+                      color: _accentColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1120,19 +1207,13 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
-  // HEADER
-  // ============================================================
 
+  // HEADER
   Widget _buildHeader(
       String title, {
         bool showClose = true,
       }) {
-    final adresse =
-        widget.appartement[
-        'adresse']
-            ?.toString() ??
-            '';
+    final adresse = widget.appartement['adresse']?.toString() ?? '';
 
     final titre =
         widget.appartement[
@@ -1172,8 +1253,7 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
                   fontSize: 22,
                   fontWeight:
                   FontWeight.w700,
-                  color:
-                  _accentColor,
+                  color: const Color(0xFF673A15),
                 ),
               ),
             ),
@@ -1224,10 +1304,7 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
-  // ÉTAPE 1 : CHOIX MÉTHODE
-  // ============================================================
-
+  // ÉTAPE CHOIX MÉTHODE
   Widget _selectStep() {
     return Column(
       crossAxisAlignment:
@@ -1244,19 +1321,13 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
             child: Column(
               children:
               methods.map((m) {
-                final isSelected =
-                    selectedMethod ==
-                        m.id;
+                final isSelected = selectedMethod == m.id;
 
-                final isCard =
-                    m.id ==
-                        'carte_bancaire';
+                final isCard = m.id == 'carte_bancaire';
 
                 return GestureDetector(
                   onTap: () {
-                    setState(() {
-                      selectedMethod =
-                          m.id;
+                    setState(() {selectedMethod = m.id;
                     });
                   },
                   child:
@@ -1278,8 +1349,9 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
                     BoxDecoration(
                       color: isSelected
                           ? lightOrange
-                          : Colors.white,
-                      borderRadius:
+                          : Color(0xC0FFF0E5),
+
+                    borderRadius:
                       BorderRadius
                           .circular(
                         16,
@@ -1549,10 +1621,7 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
-  // ÉTAPE 2 : FORMULAIRE
-  // ============================================================
-
+  // ÉTAPE FORMULAIRE
   Widget _formStep() {
     final isCard =
         selectedMethod ==
@@ -1585,10 +1654,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
               CrossAxisAlignment
                   .start,
               children: [
-                // =================================================
-                // MOBILE MONEY
-                // =================================================
 
+                // MOBILE MONEY
                 if (!isCard) ...[
                   Text(
                     'NUMÉRO UTILISÉ POUR LE PAIEMENT *',
@@ -1752,10 +1819,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
                   ),
                 ]
 
-                // =================================================
-                // CARTE BANCAIRE
-                // =================================================
 
+                // CARTE BANCAIRE
                 else ...[
                   Container(
                     width:
@@ -1866,10 +1931,7 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
           ),
         ),
 
-        // ========================================================
         // LOGO
-        // ========================================================
-
         if (selectedMethod != null)
           Padding(
             padding:
@@ -1898,10 +1960,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
             ),
           ),
 
-        // ========================================================
-        // BOUTONS
-        // ========================================================
 
+        // BOUTONS
         Row(
           children: [
             Expanded(
@@ -2001,10 +2061,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
-  // LOGOS CARTE
-  // ============================================================
 
+  // LOGOS CARTE
   Widget _buildCardBrand(
       String text,
       ) {
@@ -2044,10 +2102,8 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
-  // BUILD
-  // ============================================================
 
+  // BUILD
   @override
   Widget build(
       BuildContext context,
@@ -2068,26 +2124,20 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
         child:
         Container(
           padding:
-          const EdgeInsets
-              .all(24),
+          const EdgeInsets.all(24),
           decoration:
           BoxDecoration(
-            color:
-            Colors.white,
+            color: Color(0xFFFFF0E5),
             borderRadius:
-            const BorderRadius
-                .vertical(
-              top:
+            const BorderRadius.vertical(top:
               Radius.circular(
                 24,
               ),
             ),
             border:
-            Border(
-              top:
+            Border(top:
               BorderSide(
-                color:
-                _accentColor,
+                color: Color(0xFFFFF0E5),
                 width: 4,
               ),
             ),
@@ -2126,10 +2176,7 @@ class _PaymentBottomSheetState extends State<PaymentBottomSheet> {
     );
   }
 
-  // ============================================================
   // DISPOSE
-  // ============================================================
-
   @override
   void dispose() {
     phoneController

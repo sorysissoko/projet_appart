@@ -43,3 +43,20 @@ Thumbs.db
 
 # Build artifacts
 **/bridge-out/
+# Flutter auto-generated
+**/ephemeral/
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Build
+build/
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies

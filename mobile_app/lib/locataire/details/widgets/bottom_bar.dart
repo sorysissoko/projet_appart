@@ -41,7 +41,7 @@ class BottomBar extends StatelessWidget {
       child: Align(
         alignment: Alignment.bottomCenter,
         child: Container(
-          margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 10.h),
+          margin: EdgeInsets.symmetric(horizontal: 15.w, vertical: 25.h),
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           height: 80.h,
           decoration: BoxDecoration(

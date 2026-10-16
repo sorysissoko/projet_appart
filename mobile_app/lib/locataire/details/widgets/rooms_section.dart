@@ -19,10 +19,10 @@ class RoomsSection extends StatelessWidget {
         padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 10.h),
         child: Wrap(
           spacing: 12.w,
-          runSpacing: 1.h,
+          runSpacing: 10.h,
           alignment: WrapAlignment.center,
           children: [
-            RoomInfoItem(icon: Icons.apartment_outlined, label: type, value: '', width: 80.w),
+            RoomInfoItem(icon: Icons.apartment_outlined, label: type, value: '', width: 100.w),
             RoomInfoItem(
               icon: Icons.stairs_outlined,
               label: 'Étage',

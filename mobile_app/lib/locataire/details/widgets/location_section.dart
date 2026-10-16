@@ -32,7 +32,7 @@ class LocationSection extends StatelessWidget {
       uri,
       mode: LaunchMode.externalApplication,
     )) {
-      debugPrint('⚠️ Impossible d\'ouvrir : $url');
+      debugPrint('Impossible d\'ouvrir : $url');
     }
   }
 
@@ -44,9 +44,9 @@ class LocationSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ============================================================
+
         // TITRE
-        // ============================================================
+
         Padding(
           padding: EdgeInsets.only(top: 15.h, left: 15.w, right: 15.w),
           child: Text(
@@ -58,9 +58,8 @@ class LocationSection extends StatelessWidget {
           ),
         ),
 
-        // ============================================================
         // ADRESSE + VILLE
-        // ============================================================
+
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
           child: Row(
@@ -85,9 +84,8 @@ class LocationSection extends StatelessWidget {
           ),
         ),
 
-        // ============================================================
         // BOUTON "VOIR SUR LA CARTE"
-        // ============================================================
+
         if (hasLocalisation)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),

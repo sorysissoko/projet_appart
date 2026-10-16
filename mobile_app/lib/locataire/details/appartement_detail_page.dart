@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../reservation/price_utils.dart' as price_utils;
+import '../../reservation/reservation_detail/utils/reservation_helpers.dart';
 import '../appartement/acceuil/services/historique_consultation_service.dart';
 import '../favorite_appart/favorites_service.dart';
 
@@ -24,6 +25,8 @@ import 'widgets/location_section.dart';
 import 'widgets/bottom_bar.dart';
 import 'widgets/skeleton_widgets.dart';
 import 'widgets/date_selector_section.dart';
+
+
 
 class AppartementDetailPage extends StatefulWidget {
   final Map<String, dynamic> appartement;
@@ -44,6 +47,8 @@ class AppartementDetailPage extends StatefulWidget {
 
 class _AppartementDetailPageState extends State<AppartementDetailPage> {
   late Future<Map<String, dynamic>> _dataFuture;
+
+  bool _isProcessing = false;
 
   bool _isInitialLoad = true;
 
@@ -165,7 +170,6 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
   }
 
 
-
   // CHARGEMENT APPARTEMENT COMPLET
 
   Future<void> _loadAppartementComplet() async {
@@ -262,14 +266,11 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       // PHOTOS
       if (!_cachedData.containsKey(_cacheKeyPhotos)) {
         result[_cacheKeyPhotos] =
-        await widget.appartementService
-            .loadPhotoUrls(appartementId);
+        await widget.appartementService.loadPhotoUrls(appartementId);
 
-        _cachedData[_cacheKeyPhotos] =
-        result[_cacheKeyPhotos];
+        _cachedData[_cacheKeyPhotos] = result[_cacheKeyPhotos];
       } else {
-        result[_cacheKeyPhotos] =
-        _cachedData[_cacheKeyPhotos];
+        result[_cacheKeyPhotos] = _cachedData[_cacheKeyPhotos];
       }
 
 
@@ -278,14 +279,12 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
         try {
           final reservations =
           await widget.appartementService
-              .getReservationsByAppartement(
-            appartementId,
+              .getReservationsByAppartement(appartementId,
           );
 
           result[_cacheKeyReservations] = reservations;
 
-          _cachedData[_cacheKeyReservations] =
-              reservations;
+          _cachedData[_cacheKeyReservations] = reservations;
 
           _reservedDatesCache = _getReservedDates();
         } catch (e) {
@@ -307,28 +306,20 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       final futures = <String, Future<dynamic>>{};
 
       if (!_cachedData.containsKey(_cacheKeyInfos)) {
-        futures[_cacheKeyInfos] =
-            widget.appartementService
-                .getInfoByAppartement(appartementId);
+        futures[_cacheKeyInfos] = widget.appartementService.getInfoByAppartement(appartementId);
       }
 
       if (!_cachedData.containsKey(_cacheKeyRoles)) {
-        futures[_cacheKeyRoles] =
-            widget.appartementService
-                .getRolesByAppartement(appartementId);
+        futures[_cacheKeyRoles] = widget.appartementService.getRolesByAppartement(appartementId);
       }
 
-      if (!_cachedData.containsKey(
-        _cacheKeyDisponibilite,
+      if (!_cachedData.containsKey(_cacheKeyDisponibilite,
       )) {
-        futures[_cacheKeyDisponibilite] =
-            widget.appartementService
-                .fetchNextDisponibilite(appartementId);
+        futures[_cacheKeyDisponibilite] = widget.appartementService.fetchNextDisponibilite(appartementId);
       }
 
       if (futures.isNotEmpty) {
-        final completedFutures =
-        await Future.wait(futures.values);
+        final completedFutures = await Future.wait(futures.values);
 
         int index = 0;
 
@@ -348,15 +339,11 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       if (!_cachedData.containsKey(
         _cacheKeyUserRating,
       )) {
-        final userRating =
-        await RatingService()
-            .getUserRating(appartementId);
+        final userRating = await RatingService().getUserRating(appartementId);
 
-        result[_cacheKeyUserRating] =
-            userRating;
+        result[_cacheKeyUserRating] = userRating;
 
-        _cachedData[_cacheKeyUserRating] =
-            userRating;
+        _cachedData[_cacheKeyUserRating] = userRating;
 
         if (userRating != null) {
           _selectedRating = userRating;
@@ -371,15 +358,11 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       if (!_cachedData.containsKey(
         _cacheKeyRatingStats,
       )) {
-        final stats =
-        await RatingService()
-            .getAppartmentStats(appartementId);
+        final stats = await RatingService().getAppartmentStats(appartementId);
 
-        result[_cacheKeyRatingStats] =
-            stats;
+        result[_cacheKeyRatingStats] = stats;
 
-        _cachedData[_cacheKeyRatingStats] =
-            stats;
+        _cachedData[_cacheKeyRatingStats] = stats;
       } else {
         result[_cacheKeyRatingStats] =
         _cachedData[_cacheKeyRatingStats];
@@ -403,33 +386,27 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
 
 
       //VALEURS PAR DÉFAUT
-      result.putIfAbsent(
-        _cacheKeyInfos,
+      result.putIfAbsent(_cacheKeyInfos,
             () => [],
       );
 
-      result.putIfAbsent(
-        _cacheKeyRoles,
+      result.putIfAbsent(_cacheKeyRoles,
             () => [],
       );
 
-      result.putIfAbsent(
-        _cacheKeyPhotos,
+      result.putIfAbsent(_cacheKeyPhotos,
             () => [],
       );
 
-      result.putIfAbsent(
-        _cacheKeyDisponibilite,
+      result.putIfAbsent(_cacheKeyDisponibilite,
             () => {},
       );
 
-      result.putIfAbsent(
-        _cacheKeyReservations,
+      result.putIfAbsent(_cacheKeyReservations,
             () => [],
       );
 
-      result.putIfAbsent(
-        _cacheKeyUserRating,
+      result.putIfAbsent(_cacheKeyUserRating,
             () => null,
       );
 
@@ -448,20 +425,15 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       );
 
       return {
-        _cacheKeyInfos:
-        _cachedData[_cacheKeyInfos] ?? [],
+        _cacheKeyInfos: _cachedData[_cacheKeyInfos] ?? [],
 
-        _cacheKeyRoles:
-        _cachedData[_cacheKeyRoles] ?? [],
+        _cacheKeyRoles: _cachedData[_cacheKeyRoles] ?? [],
 
-        _cacheKeyPhotos:
-        _cachedData[_cacheKeyPhotos] ?? [],
+        _cacheKeyPhotos: _cachedData[_cacheKeyPhotos] ?? [],
 
-        _cacheKeyDisponibilite:
-        _cachedData[_cacheKeyDisponibilite] ?? {},
+        _cacheKeyDisponibilite: _cachedData[_cacheKeyDisponibilite] ?? {},
 
-        _cacheKeyReservations:
-        _cachedData[_cacheKeyReservations] ?? [],
+        _cacheKeyReservations: _cachedData[_cacheKeyReservations] ?? [],
       };
     } finally {
       _isInitialLoad = false;
@@ -485,8 +457,7 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       return DateStatus.conflict;
     }
 
-    final disponibilite =
-    _cachedData[_cacheKeyDisponibilite];
+    final disponibilite = _cachedData[_cacheKeyDisponibilite];
 
     if (disponibilite != null &&
         disponibilite['date_debut'] != null) {
@@ -538,13 +509,11 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
         return 'Dates disponibles';
 
       case DateStatus.invalid:
-        final disponibilite =
-        _cachedData[_cacheKeyDisponibilite];
+        final disponibilite = _cachedData[_cacheKeyDisponibilite];
 
-        if (disponibilite != null &&
-            disponibilite['date_debut'] != null) {
-          final dateDebut =
-          disponibilite['date_debut'] as DateTime;
+        if (disponibilite != null && disponibilite['date_debut'] != null) {
+
+          final dateDebut = disponibilite['date_debut'] as DateTime;
 
           return 'Disponible à partir du '
               '${_formatDateFrench(dateDebut)}';
@@ -563,16 +532,12 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
           return 'Vous avez déjà réservé pour ces dates';
         }
 
-        final start =
-        conflict['start'] as DateTime?;
+        final start = conflict['start'] as DateTime?;
 
-        final end =
-        conflict['end'] as DateTime?;
+        final end = conflict['end'] as DateTime?;
 
         if (start != null && end != null) {
-          return 'Déjà réservé du '
-              '${_formatDateShortFR(start)} '
-              'au ${_formatDateShortFR(end)}';
+          return 'Déjà réservé du ''${_formatDateShortFR(start)} ''au ${_formatDateShortFR(end)}';
         }
 
         return 'Ces dates sont déjà réservées';
@@ -590,11 +555,9 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       return false;
     }
 
-    final dateDebut =
-    disponibilite['date_debut'];
+    final dateDebut = disponibilite['date_debut'];
 
-    final dateFin =
-    disponibilite['date_fin'];
+    final dateFin = disponibilite['date_fin'];
 
     if (dateDebut == null ||
         dateFin == null) {
@@ -621,30 +584,23 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       dateFin.day,
     );
 
-    return !fin.isBefore(today) &&
-        !debut.isAfter(fin);
+    return !fin.isBefore(today) && !debut.isAfter(fin);
   }
 
 
   //DATES RÉSERVÉES
   Set<DateTime> _getReservedDates() {
-    final reservations =
-        _cachedData[_cacheKeyReservations]
-        as List<dynamic>? ??
-            [];
+    final reservations = _cachedData[_cacheKeyReservations] as List<dynamic>? ?? [];
 
     final Set<DateTime> reservedDates = {};
 
     for (final reservation in reservations) {
       try {
-        final rawStart =
-        reservation['date_debut'];
+        final rawStart = reservation['date_debut'];
 
-        final rawEnd =
-        reservation['date_fin'];
+        final rawEnd = reservation['date_fin'];
 
-        if (rawStart == null ||
-            rawEnd == null) {
+        if (rawStart == null || rawEnd == null) {
           continue;
         }
 
@@ -780,24 +736,16 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
           );
         }
 
-        final hasOverlap =
-            normalizedStart.isBefore(resEnd) &&
-                normalizedEnd.isAfter(resStart);
+        final hasOverlap = normalizedStart.isBefore(resEnd)
+            && normalizedEnd.isAfter(resStart);
 
         if (!hasOverlap) {
           continue;
         }
 
-        // IMPORTANT :
-        // Le schéma utilise locataire_id.
-        final reservationUserId =
-            reservation['locataire_id']?.toString() ??
-                '';
+        final reservationUserId = reservation['locataire_id']?.toString() ?? '';
 
-        final isOwnReservation =
-            currentUserId != null &&
-                reservationUserId ==
-                    currentUserId;
+        final isOwnReservation = currentUserId != null && reservationUserId == currentUserId;
 
         return {
           'hasConflict': true,
@@ -867,84 +815,59 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
 
   //SÉLECTION DES DATES
   Future<void> _openDateRangeModal() async {
-    final freshReservations =
-    await widget.appartementService
-        .getReservationsByAppartement(
-      widget.appartement['id'].toString(),
-    );
+    if (_isProcessing) return;
 
-    if (!mounted) {
-      return;
-    }
+    _isProcessing = true;
 
-    setState(() {
-      _cachedData[_cacheKeyReservations] =
-          freshReservations;
+    DateTime? tempStart = _selectedStartDate;
+    DateTime? tempEnd = _selectedEndDate;
 
-      _reservedDatesCache =
-          _getReservedDates();
-    });
+    String? warningMessage;
 
-    DateTime? tempStart =
-        _selectedStartDate;
+    final disponibilite = _cachedData[_cacheKeyDisponibilite];
 
-    DateTime? tempEnd =
-        _selectedEndDate;
-
-    final disponibilite =
-    _cachedData[_cacheKeyDisponibilite];
-
-    final CalendarStyle calendarStyle =
-    CalendarStyle(
+    final CalendarStyle calendarStyle = CalendarStyle(
       todayDecoration: const BoxDecoration(
         color: Color(0xFFFF1D1D),
         shape: BoxShape.circle,
       ),
-      rangeStartDecoration:
-      const BoxDecoration(
+      rangeStartDecoration: const BoxDecoration(
         color: Color(0xFFC5521B),
         shape: BoxShape.circle,
       ),
-      rangeEndDecoration:
-      const BoxDecoration(
+      rangeEndDecoration: const BoxDecoration(
         color: Color(0xFFC5521B),
         shape: BoxShape.circle,
       ),
-      withinRangeDecoration:
-      const BoxDecoration(
+      withinRangeDecoration: const BoxDecoration(
         color: Color(0xFFC5521B),
         shape: BoxShape.circle,
+      ),
+
+      rangeHighlightColor: Color(0xE5CCAD91),
+
+      withinRangeTextStyle: GoogleFonts.poppins(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
       ),
     );
 
-    final CalendarBuilders calendarBuilders =
-    CalendarBuilders(
-      defaultBuilder:
-          (context, day, focusedDay) {
-        final normalized =
-        DateTime(
-          day.year,
-          day.month,
-          day.day,
-        );
 
-        if (_reservedDatesCache
-            .contains(normalized)) {
+    final CalendarBuilders calendarBuilders = CalendarBuilders(
+      defaultBuilder: (context, day, focusedDay) {
+        final normalized = DateTime(day.year, day.month, day.day);
+
+        if (_reservedDatesCache.contains(normalized)) {
           return Container(
-            margin:
-            const EdgeInsets.all(6),
+            margin: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: Colors.red.withValues(
-                alpha: 0x3A,
-              ),
+              color: Colors.red.withValues(alpha: 0x3A),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
             child: Text(
               '${day.day}',
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-              ),
+              style: GoogleFonts.poppins(color: Colors.white),
             ),
           );
         }
@@ -953,33 +876,12 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       },
     );
 
+    bool isRangeAvailable(DateTime start, DateTime end) {
+      final normalizedStart = DateTime(start.year, start.month, start.day);
+      final normalizedEnd = DateTime(end.year, end.month, end.day);
 
-    //DISPONIBILITÉ D'UNE PLAGE
-    bool isRangeAvailable(
-        DateTime start,
-        DateTime end,
-        ) {
-      final normalizedStart =
-      DateTime(
-        start.year,
-        start.month,
-        start.day,
-      );
-
-      final normalizedEnd =
-      DateTime(
-        end.year,
-        end.month,
-        end.day,
-      );
-
-      for (final reserved
-      in _reservedDatesCache) {
-        if (normalizedStart.isBefore(
-          reserved.add(
-            const Duration(days: 1),
-          ),
-        ) &&
+      for (final reserved in _reservedDatesCache) {
+        if (normalizedStart.isBefore(reserved.add(const Duration(days: 1))) &&
             normalizedEnd.isAfter(reserved)) {
           return false;
         }
@@ -992,380 +894,244 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
       context: context,
       isScrollControlled: true,
       shape: RoundedRectangleBorder(
-        borderRadius:
-        BorderRadius.vertical(
-          top: Radius.circular(25.r),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.r)),
       ),
       builder: (context) {
         return StatefulBuilder(
-          builder:
-              (context, setModalState) {
+          builder: (context, setModalState) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context)
-                    .viewInsets
-                    .bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
               child: Container(
-                decoration:
-                const BoxDecoration(
-                  color: Color(0xFFFFE6EB),
-                  borderRadius:
-                  BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0E5),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
-                child: SizedBox(
-                  height:
-                  MediaQuery.of(context)
-                      .size
-                      .height *
-                      0.64,
-                  child: Column(
-                    mainAxisSize:
-                    MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 50.w,
-                        height: 5.h,
-                        margin:
-                        EdgeInsets.symmetric(
-                          vertical: 12.h,
-                        ),
-                        decoration:
-                        BoxDecoration(
-                          color:
-                          const Color(
-                            0xE5E3B28A,
-                          ),
-                          borderRadius:
-                          BorderRadius
-                              .circular(
-                            10.r,
-                          ),
-                        ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50.w,
+                      height: 5.h,
+                      margin: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE5E3B28A),
+                        borderRadius: BorderRadius.circular(10.r),
                       ),
+                    ),
 
-                      Text(
-                        'Sélectionnez vos dates',
-                        style:
-                        GoogleFonts.poppins(
-                          fontSize: 18.sp,
-                          fontWeight:
-                          FontWeight.bold,
-                        ),
-                      ),
-
-                      if (disponibilite !=
-                          null &&
-                          disponibilite[
-                          'date_debut'] !=
-                              null)
-                        Padding(
-                          padding:
-                          EdgeInsets.symmetric(
-                            horizontal: 30.w,
-                            vertical: 5.h,
-                          ),
-                          child: Text(
-                            'Disponible à partir du '
-                                '${_formatDateFrench(
-                              disponibilite[
-                              'date_debut'],
-                            )}',
-                            style:
-                            GoogleFonts.poppins(
-                              fontSize: 12.sp,
-                              color:
-                              const Color(
-                                0xE58A4E1E,
+                    Flexible(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 5.w),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Sélectionnez vos dates',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
                               ),
-                              fontWeight:
-                              FontWeight.w500,
                             ),
-                            textAlign:
-                            TextAlign.center,
-                          ),
-                        ),
 
-                      TableCalendar(
-                        firstDay:
-                        DateTime.now(),
-                        lastDay: DateTime(
-                          DateTime.now().year + 2,
-                        ),
-                        focusedDay:
-                        tempStart ??
-                            DateTime.now(),
-                        availableCalendarFormats:
-                        const {
-                          CalendarFormat.month:
-                          'Mois',
-                        },
-                        rangeSelectionMode:
-                        RangeSelectionMode
-                            .toggledOn,
-                        rangeStartDay:
-                        tempStart,
-                        rangeEndDay:
-                        tempEnd,
-                        calendarStyle:
-                        calendarStyle,
-                        calendarBuilders:
-                        calendarBuilders,
-                        onRangeSelected:
-                            (
-                            start,
-                            end,
-                            focusedDay,
-                            ) {
-                          setModalState(() {
-                            if (start !=
-                                null &&
-                                end !=
-                                    null) {
-                              tempStart =
-                                  start;
-
-                              tempEnd =
-                                  end;
-
-                              if (!isRangeAvailable(
-                                start,
-                                end,
-                              )) {
-                                ScaffoldMessenger
-                                    .of(
-                                  context,
-                                ).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Certaines dates sont déjà réservées',
-                                    ),
-                                  ),
-                                );
-                              }
-                            } else if (start !=
-                                null &&
-                                end == null) {
-                              tempStart =
-                                  start;
-
-                              tempEnd = null;
-                            }
-                          });
-                        },
-                      ),
-
-                      SizedBox(
-                        height: 15.h,
-                      ),
-
-                      ElevatedButton(
-                        onPressed: () {
-                          //DATES
-                          if (tempStart ==
-                              null ||
-                              tempEnd ==
-                                  null) {
-                            ScaffoldMessenger
-                                .of(
-                              context,
-                            ).showSnackBar(
-                              SnackBar(
-                                behavior:
-                                SnackBarBehavior
-                                    .floating,
-                                margin:
-                                EdgeInsets
-                                    .symmetric(
-                                  horizontal:
-                                  20.w,
-                                  vertical:
-                                  300.h,
-                                ),
-                                shape:
-                                RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                    16.r,
-                                  ),
-                                ),
-                                backgroundColor:
-                                const Color(
-                                  0xFFFF9966,
-                                ),
-                                duration:
-                                const Duration(
-                                  seconds: 3,
-                                ),
-                                content:
-                                Column(
-                                  mainAxisSize:
-                                  MainAxisSize
-                                      .min,
-                                  children: [
-                                    const Icon(
-                                      Icons
-                                          .warning,
-                                      color:
-                                      Colors
-                                          .red,
-                                      size: 40,
-                                    ),
-                                    SizedBox(
-                                      height:
-                                      8.h,
-                                    ),
-                                    Text(
-                                      'Veuillez sélectionner une date de début et une date de fin.',
-                                      textAlign:
-                                      TextAlign
-                                          .center,
-                                      style:
-                                      GoogleFonts
-                                          .poppins(
-                                        fontSize:
-                                        20.sp,
-                                        fontWeight:
-                                        FontWeight
-                                            .bold,
-                                        color:
-                                        Colors
-                                            .white,
-                                      ),
-                                    ),
-                                  ],
+                            if (disponibilite != null &&
+                                disponibilite['date_debut'] != null)
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 30.w,
+                                  vertical: 5.h,
                                 ),
                               ),
-                            );
 
-                            return;
-                          }
-
-                          //VÉRIFICATION DISPONIBILITÉ
-                          if (!isRangeAvailable(
-                            tempStart!,
-                            tempEnd!,
-                          )) {
-                            ScaffoldMessenger
-                                .of(
-                              context,
-                            ).showSnackBar(
-                              SnackBar(
-                                behavior:
-                                SnackBarBehavior
-                                    .floating,
-                                margin:
-                                EdgeInsets
-                                    .symmetric(
-                                  horizontal:
-                                  20.w,
-                                  vertical:
-                                  300.h,
+                            //BANDEAU D'AVERTISSEMENT
+                            if (warningMessage != null)
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.w,
+                                  vertical: 8.h,
                                 ),
-                                shape:
-                                RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius
-                                      .circular(
-                                    16.r,
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 10.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE5E5),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: const Color(0xFFFF6B6B),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: const Color(0xFFFF3535),
+                                        size: 22.sp,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Expanded(
+                                        child: Text(
+                                          warningMessage!,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF8A0000),
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setModalState(() {
+                                            warningMessage = null;
+                                          });
+                                        },
+                                        child: Icon(
+                                          Icons.close,
+                                          size: 18.sp,
+                                          color: const Color(0xFF8A0000),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                backgroundColor:
-                                const Color(
-                                  0xFFFF9966,
+                              ),
+
+                            TableCalendar(
+                              locale: 'fr_FR',
+
+                              firstDay: DateTime.now(),
+                              lastDay: DateTime(DateTime.now().year + 2),
+                              focusedDay: tempStart ?? DateTime.now(),
+
+                              headerStyle: HeaderStyle(
+                                formatButtonVisible: false,
+                                titleCentered: true,
+                                titleTextStyle: GoogleFonts.poppins(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF673A15),
                                 ),
-                                duration:
-                                const Duration(
-                                  seconds: 3,
+                                leftChevronIcon: Icon(
+                                  Icons.chevron_left,
+                                  color: const Color(0xFFE36830),
+                                  size: 24.sp,
                                 ),
-                                content:
-                                Column(
-                                  mainAxisSize:
-                                  MainAxisSize
-                                      .min,
-                                  children: [
-                                    const Icon(
-                                      Icons
-                                          .warning,
-                                      color:
-                                      Colors
-                                          .red,
-                                      size: 40,
-                                    ),
-                                    SizedBox(
-                                      height:
-                                      8.h,
-                                    ),
-                                    Text(
-                                      "La plage sélectionnée n'est pas disponible.",
-                                      textAlign:
-                                      TextAlign
-                                          .center,
-                                      style:
-                                      GoogleFonts
-                                          .poppins(
-                                        fontSize:
-                                        20.sp,
-                                        fontWeight:
-                                        FontWeight
-                                            .bold,
-                                        color:
-                                        Colors
-                                            .white,
-                                      ),
-                                    ),
-                                  ],
+                                rightChevronIcon: Icon(
+                                  Icons.chevron_right,
+                                  color: const Color(0xFFE36830),
+                                  size: 24.sp,
                                 ),
                               ),
-                            );
 
-                            return;
-                          }
+                              daysOfWeekStyle: DaysOfWeekStyle(
+                                weekdayStyle: GoogleFonts.poppins(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF673A15),
+                                ),
+                                weekendStyle: GoogleFonts.poppins(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFE36830),
+                                ),
+                              ),
 
-                          //ENREGISTREMENT LOCAL
-                          setState(() {
-                            _selectedStartDate =
-                                tempStart;
+                              availableCalendarFormats: const {
+                                CalendarFormat.month: 'Mois',
+                              },
+                              rangeSelectionMode: RangeSelectionMode.toggledOn,
+                              rangeStartDay: tempStart,
+                              rangeEndDay: tempEnd,
+                              calendarStyle: calendarStyle,
+                              calendarBuilders: calendarBuilders,
+                              onRangeSelected: (start, end, focusedDay) {
+                                setModalState(() {
+                                  if (start != null && end != null) {
+                                    tempStart = start;
+                                    tempEnd = end;
 
-                            _selectedEndDate =
-                                tempEnd;
-                          });
+                                    if (!isRangeAvailable(start, end)) {
+                                      warningMessage =
+                                      'Certaines dates de cette plage sont déjà réservées.';
+                                    } else {
+                                      warningMessage = null;
+                                    }
+                                  } else if (start != null && end == null) {
+                                    tempStart = start;
+                                    tempEnd = null;
+                                    warningMessage = null;
+                                  }
+                                });
+                              },
+                            ),
 
-                          //CALCUL DU PRIX
-                          _calculateTotal();
+                            SizedBox(height: 15.h),
 
-                          //FERMETURE
-                          Navigator.pop(
-                            context,
-                          );
-                        },
-                        style:
-                        ElevatedButton
-                            .styleFrom(
-                          backgroundColor:
-                          const Color(
-                            0xFFE36830,
-                          ),
-                        ),
-                        child: Text(
-                          'Confirmer',
-                          style:
-                          GoogleFonts
-                              .poppins(
-                            fontSize: 24.sp,
-                            fontWeight:
-                            FontWeight.w300,
-                            color:
-                            Colors.white,
-                          ),
+                            //BOUTON CONFIRMER
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: SizedBox(
+                                width: 200,
+                                height:50,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (tempStart == null || tempEnd == null) {
+                                      setModalState(() {
+                                        warningMessage =
+                                        'Veuillez sélectionner une date de début et une date de fin.';
+                                      });
+                                      return;
+                                    }
+
+                                    if (!isRangeAvailable(tempStart!, tempEnd!)) {
+                                      setModalState(() {
+                                        warningMessage =
+                                        "La plage sélectionnée n'est pas disponible.";
+                                      });
+                                      return;
+                                    }
+
+                                    setState(() {
+                                      _selectedStartDate = tempStart;
+                                      _selectedEndDate = tempEnd;
+                                    });
+
+                                    _calculateTotal();
+
+                                    Navigator.pop(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE36830),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25.r),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Confirmer',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: 20.h),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -1373,8 +1139,29 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
         );
       },
     );
+
+    _isProcessing = false;
+
+    _refreshReservationsInBackground();
   }
 
+  Future<void> _refreshReservationsInBackground() async {
+    try {
+      final freshReservations = await widget.appartementService
+          .getReservationsByAppartement(
+        widget.appartement['id'].toString(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _cachedData[_cacheKeyReservations] = freshReservations;
+        _reservedDatesCache = _getReservedDates();
+      });
+    } catch (e) {
+      debugPrint('Erreur rafraîchissement réservations : $e');
+    }
+  }
 
   // CALCUL DU PRIX AVEC RÉDUCTION
 
@@ -1551,305 +1338,176 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
 
 
   // RATING
-
-  void _openRatingDialog({
+  Future<void> _openRatingDialog({
     VoidCallback? onRatingSubmitted,
-  }) {
-    final currentUser =
-        Supabase.instance.client.auth.currentUser;
+  }) async {
+    if (_isProcessing) return;
+
+    final currentUser = Supabase.instance.client.auth.currentUser;
 
     if (currentUser == null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
-        SnackBar(
-          behavior:
-          SnackBarBehavior.floating,
-          margin: EdgeInsets.only(
-            bottom: 100.h,
-            left: 20.w,
-            right: 20.w,
-          ),
-          shape:
-          RoundedRectangleBorder(
-            borderRadius:
-            BorderRadius.circular(
-              16.r,
-            ),
-          ),
-          backgroundColor:
-          const Color(0xFFFF0505),
-          duration:
-          const Duration(seconds: 3),
-          content: Column(
-            mainAxisSize:
-            MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: Colors.white,
-                size: 40.sp,
-              ),
-              SizedBox(
-                height: 8.h,
-              ),
-              Text(
-                'Vous devez être connecté pour laisser une note',
-                textAlign:
-                TextAlign.center,
-                style:
-                GoogleFonts.poppins(
-                  fontSize: 18.sp,
-                  fontWeight:
-                  FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
+      if (!mounted) return;
+
+      ReservationHelpers.showAppSnackBar(
+        message: 'Vous devez être connecté pour laisser une note.',
+        icon: Icons.lock_outline,
+        type: SnackBarType.warning,
+      );
+      return;
+    }
+
+    _isProcessing = true;
+
+    bool peutNoter = false;
+
+    try {
+      peutNoter = await widget.appartementService
+          .peutNoterAppartement(widget.appartement['id'].toString());
+    } catch (e) {
+      debugPrint('Erreur vérification peutNoter : $e');
+    }
+
+    if (!mounted) return;
+
+    _isProcessing = false;
+
+    if (!peutNoter) {
+      ReservationHelpers.showAppSnackBar(
+        message: 'Vous devez avoir séjourné dans ce logement '
+            'avant de pouvoir laisser une évaluation.',
+        icon: Icons.info_outline,
+        type: SnackBarType.info,
       );
 
       return;
     }
 
-    final int cachedUserRating =
-        _cachedData[
-        _cacheKeyUserRating]
-        as int? ??
-            0;
+    final int cachedUserRating = _cachedData[_cacheKeyUserRating] as int? ?? 0;
+
+    _isProcessing = true;
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        int localRating =
-        cachedUserRating > 0
-            ? cachedUserRating
-            : 5;
+        int localRating = cachedUserRating > 0 ? cachedUserRating : 5;
 
         return Dialog(
-          backgroundColor:
-          Colors.transparent,
+          backgroundColor: Colors.transparent,
           insetPadding:
-          EdgeInsets.symmetric(
-            horizontal: 24.w,
-            vertical: 24.h,
-          ),
+          EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
           child: Container(
             width: 360.w,
             constraints:
-            BoxConstraints(
-              maxWidth: 400.w,
-              minWidth: 280.w,
-            ),
-            padding:
-            EdgeInsets.all(20.w),
-            decoration:
-            BoxDecoration(
-              color:
-              const Color(0xFFFFF0E5),
-              borderRadius:
-              BorderRadius.circular(
-                24.r,
-              ),
+            BoxConstraints(maxWidth: 400.w, minWidth: 280.w),
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF0E5),
+              borderRadius: BorderRadius.circular(24.r),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black
-                      .withValues(
-                    alpha: 0.1,
-                  ),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
-                  offset:
-                  const Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
-              mainAxisSize:
-              MainAxisSize.min,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Center(
                   child: Container(
                     width: 40.w,
                     height: 4.h,
-                    decoration:
-                    BoxDecoration(
-                      color:
-                      Colors.grey[300],
-                      borderRadius:
-                      BorderRadius.circular(
-                        2.r,
-                      ),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2.r),
                     ),
                   ),
                 ),
-
-                SizedBox(
-                  height: 16.h,
-                ),
-
+                SizedBox(height: 16.h),
                 Text(
                   'Votre évaluation',
-                  style:
-                  GoogleFonts.poppins(
+                  style: GoogleFonts.poppins(
                     fontSize: 20.sp,
-                    fontWeight:
-                    FontWeight.bold,
-                    color:
-                    const Color(
-                      0xFF673A15,
-                    ),
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF673A15),
                   ),
                 ),
-
-                SizedBox(
-                  height: 16.h,
-                ),
-
+                SizedBox(height: 16.h),
                 StatefulBuilder(
-                  builder:
-                      (
-                      context,
-                      setDialogState,
-                      ) {
+                  builder: (context, setDialogState) {
                     return Column(
-                      mainAxisSize:
-                      MainAxisSize.min,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Row(
                           mainAxisAlignment:
-                          MainAxisAlignment
-                              .center,
-                          children:
-                          List.generate(
-                            5,
-                                (index) {
-                              return GestureDetector(
-                                onTap: () {
-                                  setDialogState(
-                                        () {
-                                      localRating =
-                                          index +
-                                              1;
-                                    },
-                                  );
-                                },
-                                child:
-                                Container(
-                                  margin:
-                                  EdgeInsets
-                                      .symmetric(
-                                    horizontal:
-                                    4.w,
-                                  ),
-                                  padding:
-                                  EdgeInsets
-                                      .all(
-                                    4.w,
-                                  ),
-                                  decoration:
-                                  BoxDecoration(
-                                    color: index <
-                                        localRating
-                                        ? Colors
-                                        .amber
-                                        .withValues(
-                                      alpha:
-                                      0.1,
-                                    )
-                                        : Colors
-                                        .transparent,
-                                    shape:
-                                    BoxShape
-                                        .circle,
-                                  ),
-                                  child: Icon(
-                                    index <
-                                        localRating
-                                        ? Icons
-                                        .star_rounded
-                                        : Icons
-                                        .star_border_rounded,
-                                    color:
-                                    Colors
-                                        .amber,
-                                    size:
-                                    36.sp,
-                                  ),
+                          MainAxisAlignment.center,
+                          children: List.generate(5, (index) {
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  localRating = index + 1;
+                                });
+                              },
+                              child: Container(
+                                margin: EdgeInsets.symmetric(
+                                  horizontal: 4.w,
                                 ),
-                              );
-                            },
-                          ),
+                                padding: EdgeInsets.all(4.w),
+                                decoration: BoxDecoration(
+                                  color: index < localRating
+                                      ? Colors.amber
+                                      .withValues(alpha: 0.1)
+                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  index < localRating
+                                      ? Icons.star_rounded
+                                      : Icons
+                                      .star_border_rounded,
+                                  color: Colors.amber,
+                                  size: 36.sp,
+                                ),
+                              ),
+                            );
+                          }),
                         ),
-
-                        SizedBox(
-                          height: 12.h,
-                        ),
-
+                        SizedBox(height: 12.h),
                         TextField(
-                          controller:
-                          _commentController,
+                          controller: _commentController,
                           maxLines: 3,
-                          style:
-                          GoogleFonts.poppins(
+                          style: GoogleFonts.poppins(
                             fontSize: 15.sp,
-                            color:
-                            const Color(
-                              0xFF673A15,
-                            ),
+                            color: const Color(0xFF673A15),
                           ),
-                          decoration:
-                          InputDecoration(
+                          decoration: InputDecoration(
                             hintText:
                             'Ajouter un commentaire (optionnel)...',
-                            hintStyle:
-                            GoogleFonts
-                                .poppins(
-                              color: Colors
-                                  .grey
-                                  .shade500,
-                              fontSize:
-                              14.sp,
+                            hintStyle: GoogleFonts.poppins(
+                              color: Colors.grey.shade500,
+                              fontSize: 14.sp,
                             ),
                             filled: true,
-                            fillColor:
-                            const Color(
-                              0xFFFFF5EC,
-                            ),
-                            border:
-                            OutlineInputBorder(
+                            fillColor: const Color(0xFFFFF5EC),
+                            border: OutlineInputBorder(
                               borderRadius:
-                              BorderRadius
-                                  .circular(
-                                12.r,
-                              ),
-                              borderSide:
-                              BorderSide
-                                  .none,
+                              BorderRadius.circular(12.r),
+                              borderSide: BorderSide.none,
                             ),
-                            focusedBorder:
-                            OutlineInputBorder(
-                              borderSide:
-                              const BorderSide(
-                                color:
-                                Color(
-                                  0xFFE36830,
-                                ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE36830),
                                 width: 1.5,
                               ),
                               borderRadius:
-                              BorderRadius
-                                  .circular(
-                                12.r,
-                              ),
+                              BorderRadius.circular(12.r),
                             ),
                             contentPadding:
-                            EdgeInsets
-                                .symmetric(
-                              horizontal:
-                              16.w,
-                              vertical:
-                              12.h,
+                            EdgeInsets.symmetric(
+                              horizontal: 16.w,
+                              vertical: 12.h,
                             ),
                           ),
                         ),
@@ -1857,98 +1515,54 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
                     );
                   },
                 ),
-
-                SizedBox(
-                  height: 16.h,
-                ),
-
+                SizedBox(height: 16.h),
                 Row(
                   children: [
                     Expanded(
-                      child:
-                      OutlinedButton(
+                      child: OutlinedButton(
                         onPressed: () {
-                          Navigator.pop(
-                            context,
-                          );
+                          Navigator.pop(context);
                         },
-                        style:
-                        OutlinedButton
-                            .styleFrom(
+                        style: OutlinedButton.styleFrom(
                           side:
-                          BorderSide(
-                            color:
-                            Colors.grey[
-                            300]!,
-                          ),
-                          shape:
-                          RoundedRectangleBorder(
+                          BorderSide(color: Colors.grey[300]!),
+                          shape: RoundedRectangleBorder(
                             borderRadius:
-                            BorderRadius
-                                .circular(
-                              14.r,
-                            ),
+                            BorderRadius.circular(14.r),
                           ),
-                          padding:
-                          EdgeInsets
-                              .symmetric(
-                            vertical:
-                            14.h,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 14.h,
                           ),
                         ),
                         child: Text(
                           'Annuler',
-                          style:
-                          GoogleFonts
-                              .poppins(
-                            color:
-                            Colors.grey[
-                            600],
-                            fontSize:
-                            15.sp,
+                          style: GoogleFonts.poppins(
+                            color: Colors.grey[600],
+                            fontSize: 15.sp,
                           ),
                         ),
                       ),
                     ),
-
-                    SizedBox(
-                      width: 12.w,
-                    ),
-
+                    SizedBox(width: 12.w),
                     Expanded(
-                      child:
-                      ElevatedButton(
-                        style:
-                        ElevatedButton
-                            .styleFrom(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
                           backgroundColor:
-                          const Color(
-                            0xFFE36830,
-                          ),
-                          shape:
-                          RoundedRectangleBorder(
+                          const Color(0xFFE36830),
+                          shape: RoundedRectangleBorder(
                             borderRadius:
-                            BorderRadius
-                                .circular(
-                              14.r,
-                            ),
+                            BorderRadius.circular(14.r),
                           ),
-                          padding:
-                          EdgeInsets
-                              .symmetric(
-                            vertical:
-                            14.h,
+                          padding: EdgeInsets.symmetric(
+                            vertical: 14.h,
                           ),
                         ),
                         onPressed: () {
                           setState(() {
-                            _selectedRating =
-                                localRating;
+                            _selectedRating = localRating;
                           });
 
-                          Navigator.pop(
-                            context,
-                          );
+                          Navigator.pop(context);
 
                           _submitRating(
                             onRatingSubmitted:
@@ -1956,20 +1570,13 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
                           );
                         },
                         child: Text(
-                          cachedUserRating >
-                              0
+                          cachedUserRating > 0
                               ? 'Modifier'
                               : 'Confirmer',
-                          style:
-                          GoogleFonts
-                              .poppins(
-                            color:
-                            Colors.white,
-                            fontSize:
-                            15.sp,
-                            fontWeight:
-                            FontWeight
-                                .w700,
+                          style: GoogleFonts.poppins(
+                            color: Colors.white,
+                            fontSize: 15.sp,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
@@ -1981,12 +1588,14 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
           ),
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        _isProcessing = false;
+      }
+    });
   }
 
-
   // ENREGISTREMENT NOTE
-
   Future<void> _submitRating({
     VoidCallback? onRatingSubmitted,
   }) async {
@@ -2281,33 +1890,18 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
               _buildTitle(),
 
               // STATUS
-
               StatusRow(
                 isDisponible:
-                _checkDisponibilite(
-                  disponibilite,
-                ),
-                appartementId:
-                widget.appartement[
-                'id']
-                    .toString(),
+                _checkDisponibilite(disponibilite),
+                appartementId: widget.appartement['id'].toString(),
                 isFavorite:
-                context
-                    .watch<
-                    FavoritesService>()
-                    .isFavorite(
-                  widget.appartement[
-                  'id']
-                      .toString(),
-                ),
+                context.watch<FavoritesService>().isFavorite(widget.appartement['id'].toString(),),
                 onFavoriteToggle:
                     () {
                   context
                       .read<
                       FavoritesService>()
-                      .toggleFavorite(
-                    widget.appartement[
-                    'id']
+                      .toggleFavorite(widget.appartement['id']
                         .toString(),
                   );
                 },
@@ -2315,26 +1909,15 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
                 _cachedData[
                 _cacheKeyPhotos] ??
                     [],
-                titre:
-                widget.appartement[
-                'titre'] ??
-                    'Appartement',
-                description:
-                widget.appartement[
-                'description'] ??
-                    '',
+                titre: widget.appartement['titre'] ?? 'Appartement',
+                description: widget.appartement['description'] ?? '',
               ),
 
-
               // CHAMBRES
-
               RoomsSection(
                 info: info,
                 type:
-                widget.appartement[
-                'type']
-                    ?.toString() ??
-                    'Type...',
+                widget.appartement['type']?.toString() ?? 'Type...',
               ),
 
               SizedBox(
@@ -2496,7 +2079,7 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
               ),
 
               SizedBox(
-                height: 80.h,
+                height: 130.h,
               ),
             ],
           ),
@@ -2522,21 +2105,19 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
 
     return Center(
       child: Transform.translate(
-        offset: const Offset(0, -20),
+        offset: const Offset(0, -30),
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 20.w),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-
               // NOM DE LA RÉSIDENCE avec badge
-
               if (hasResidence)
                 Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: 12.w,
-                    vertical: 4.h,
+                    vertical: 1.h,
                   ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE85D26).withValues(alpha: 0.10),
@@ -2570,7 +2151,8 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
                   ),
                 ),
 
-              if (hasResidence) SizedBox(height: 8.h),
+              if (hasResidence)
+                SizedBox(height: 8.h),
 
               // TITRE DE L'APPARTEMENT
               Text(
@@ -2580,7 +2162,6 @@ class _AppartementDetailPageState extends State<AppartementDetailPage> {
                   fontWeight: FontWeight.w700,
                 ),
                 textAlign: TextAlign.center,
-                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],

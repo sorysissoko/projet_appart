@@ -42,12 +42,12 @@ import 'locataire/parametres/paiement_et_versement.dart';
 import 'locataire/parametres/parametre_profile.dart';
 import 'locataire/parametres/profile.dart';
 import 'locataire/parametres/vos_paiements.dart';
-
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   // LOCALISATION
   await initializeDateFormatting('fr_FR', null);
 
@@ -63,6 +63,13 @@ Future<void> main() async {
 
   // SERVICES
   ServiceLocator.initialize();
+
+  ServiceLocator.database
+      .marquerReservationsTerminees()
+      .catchError((e) {
+    debugPrint('Erreur marquage réservations : $e');
+    return 0;
+  });
 
   // APPLICATION
   runApp(const TenantApp());

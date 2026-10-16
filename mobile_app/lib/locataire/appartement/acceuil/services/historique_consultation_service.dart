@@ -33,55 +33,52 @@ class HistoriqueConsultationService {
 
 
 
-  /// Récupérer les appartements récemment consultés
+  //Récupérer les appartements récemment consultés
   Future<List<Map<String, dynamic>>> getHistorique() async {
     final user = supabase.auth.currentUser;
 
     if (user == null) return [];
 
     try {
+      // 👇 Utilise la VUE qui contient TOUT (appartement + residence + rating + images)
       final response = await supabase
-          .from('historique_consultations')
-          .select('''
-          id,
-          appartement_id,
-          user_id,
-          date_vue,
-          appartement:appartements!historique_consultations_appartement_id_fkey (
-            id,
-            titre,
-            description,
-            type,
-            prix,
-            prix_proprietaire,
-            frais_service,
-            nbre_sejour,
-            status,
-            residence_id,
-            avg_rating,
-            ratings_count,
-            autres_equipements
-          )
-        ''')
+          .from('vue_historique_consultations')
+          .select('*')
           .eq('user_id', user.id)
           .order('date_vue', ascending: false)
           .limit(10);
 
-      // Aplatir : on veut une liste d'appartements enrichis
+      // 👇 Reformater pour garder le même format qu'avant
       final List<Map<String, dynamic>> result = [];
 
       for (final row in response) {
-        final appartement = row['appartement'];
+        final app = <String, dynamic>{
+          // Identifiant
+          'id': row['appartement_id'],
 
-        if (appartement is Map) {
-          final app = Map<String, dynamic>.from(appartement);
+          // Infos appartement
+          'titre': row['titre'],
+          'type': row['type'],
+          'prix': row['prix'],
+          'nbre_sejour': row['nbre_sejour'],
 
-          // Ajouter les infos de consultation
-          app['historique_id'] = row['id'];
-          app['date_vue'] = row['date_vue'];
+          // Ville + adresse (depuis residences via la vue)
+          'ville': row['ville'],
+          'adresse': row['adresse'],
 
-          result.add(app);
-        }
+          // Notation (calculée dans la vue)
+          'avg_rating': row['avg_rating'],
+          'ratings_count': row['ratings_count'],
+
+          // Photos (JSON array d'URLs)
+          'photo_urls': row['images'] ?? [],
+
+          // Historique
+          'historique_id': row['historique_id'],
+          'date_vue': row['date_vue'],
+        };
+
+        result.add(app);
       }
 
       return result;

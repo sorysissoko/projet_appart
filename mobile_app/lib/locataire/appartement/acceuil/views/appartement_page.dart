@@ -11,6 +11,7 @@ import '../widgets/appartement_card.dart';
 import '../widgets/appartement_filters.dart';
 import '../widgets/appartement_sections.dart';
 import '../widgets/recent_appartement_section.dart';
+import '../widgets/skeleton_loader.dart';
 import 'all_historique_appartements_page.dart';
 import 'all_new_appartements_page.dart';
 import 'all_popular_appartements_page.dart';
@@ -24,6 +25,9 @@ class AppartementPage extends StatefulWidget {
 
 class _AppartementPageState extends State<AppartementPage>
     with TickerProviderStateMixin {
+
+  //Pas d'action apres un clic
+  bool _isNavigating = false;
 
   // SERVICES
   final DatabaseService _databaseService = DatabaseService();
@@ -539,32 +543,50 @@ class _AppartementPageState extends State<AppartementPage>
 
   // NAVIGATION DÉTAIL
 
+  // NAVIGATION DÉTAIL
   Future<void> _navigateToDetail(
       Map<String, dynamic> app,
       ) async {
-    final appartementId = app['id']?.toString();
+    // Si on est déjà en train de naviguer, on ignore le clic
+    if (_isNavigating) return;
 
+    final appartementId = app['id']?.toString();
     if (appartementId == null) return;
 
-    await HistoriqueConsultationService()
-        .ajouterConsultation(appartementId);
-
-    if (!mounted) return;
-
+    // On verrouille immédiatement
     setState(() {
-      _futureRecentApps =
-          HistoriqueConsultationService().getHistorique();
+      _isNavigating = true;
     });
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AppartementDetailPage(
-          appartement: app,
-          appartementService: _databaseService,
+    try {
+      await HistoriqueConsultationService().ajouterConsultation(appartementId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _futureRecentApps = HistoriqueConsultationService().getHistorique();
+      });
+
+      // Navigation
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AppartementDetailPage(
+            appartement: app,
+            appartementService: _databaseService,
+          ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('Erreur navigation détail: $e');
+    } finally {
+      // On déverrouille quand l'utilisateur revient sur la page
+      if (mounted) {
+        setState(() {
+          _isNavigating = false;
+        });
+      }
+    }
   }
 
   // LISTE
@@ -689,7 +711,6 @@ class _AppartementPageState extends State<AppartementPage>
 
 
   // DISPOSE
-
   @override
   void dispose() {
     _tabController.removeListener(_onTabChanged);
@@ -699,7 +720,6 @@ class _AppartementPageState extends State<AppartementPage>
 
 
   // BUILD
-
   @override
   Widget build(BuildContext context) {
     context.watch<FavoritesService>();
@@ -717,15 +737,11 @@ class _AppartementPageState extends State<AppartementPage>
           child: FutureBuilder<Map<String, dynamic>>(
             future: _futureAllData,
             builder: (context, snapshot) {
-
               // CHARGEMENT
-
-              if (snapshot.connectionState ==
-                  ConnectionState.waiting) {
-                return const Center(
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFE85D26),
-                  ),
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: SkeletonLoader(width: width),
                 );
               }
 
@@ -734,9 +750,13 @@ class _AppartementPageState extends State<AppartementPage>
                 return _buildErrorWidget(width);
               }
 
+              // ERREUR
+              if (snapshot.hasError) {
+                return _buildErrorWidget(width);
+              }
+
               // DONNÉES
-              final loadedApartments =
-              (snapshot.data?['appartements'] as List?)
+              final loadedApartments = (snapshot.data?['appartements'] as List?)
                   ?.cast<Map<String, dynamic>>();
 
               if (loadedApartments != null &&
@@ -747,8 +767,7 @@ class _AppartementPageState extends State<AppartementPage>
               // SECTIONS
               final newApps = _getNewApartments();
               final popularApps = _getPopularApartments();
-              final recommendedApps =
-              _getRecommendedApartments(popularApps);
+              final recommendedApps = _getRecommendedApartments(popularApps);
 
               // CONTENU RESPONSIVE
               return Column(
@@ -772,81 +791,82 @@ class _AppartementPageState extends State<AppartementPage>
 
                   Expanded(
                     child: SingleChildScrollView(
-                      physics:
-                      const AlwaysScrollableScrollPhysics(),
+                      physics: const AlwaysScrollableScrollPhysics(),
                       child: Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
                             maxWidth: contentWidth,
                           ),
                           child: Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-
-                              // NOUVEAUTÉS
-
+                              //NOUVEAUTÉS
                               if (newApps.isNotEmpty)
                                 AppartementSection(
                                   title: '🆕 Nouveautés',
                                   apps: newApps,
                                   accentColor: accentColor,
                                   isNewSection: true,
-
-                                  // ✅ AJOUT
                                   disponibilites: _disponibilites,
-
                                   onTapAll: () {
+                                    if (_isNavigating) return;
+                                    setState(() => _isNavigating = true);
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
                                         const NouveauxAppartementsPage(),
                                       ),
-                                    );
+                                    ).then((_) {
+                                      if (mounted) {
+                                        setState(() => _isNavigating = false);
+                                      }
+                                    });
                                   },
                                   onTapCard: _navigateToDetail,
                                 ),
 
-                              // POPULAIRES
-
+                              //POPULAIRES
                               if (popularApps.isNotEmpty)
                                 AppartementSection(
                                   title: '⭐ Les Plus Populaires',
                                   apps: popularApps,
                                   accentColor: accentColor,
                                   isNewSection: false,
-
-                                  // ✅ AJOUT
                                   disponibilites: _disponibilites,
-
                                   onTapAll: () {
+                                    //PROTECTION AJOUTÉE ICI
+                                    if (_isNavigating) return;
+                                    setState(() => _isNavigating = true);
+
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
                                         builder: (_) =>
                                         const PopulairesAppartementsPage(),
                                       ),
-                                    );
+                                    ).then((_) {
+                                      if (mounted) {
+                                        setState(() => _isNavigating = false);
+                                      }
+                                    });
                                   },
                                   onTapCard: _navigateToDetail,
                                 ),
 
-                              // RECOMMANDATIONS
+                              // ================= RECOMMANDATIONS =================
                               if (recommendedApps.isNotEmpty) ...[
                                 Padding(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal:
-                                    _horizontalPadding(width),
+                                    horizontal: _horizontalPadding(width),
                                     vertical: 8.h,
                                   ),
                                   child: Text(
                                     '✨ Recommandations',
                                     style: GoogleFonts.poppins(
                                       fontSize:
-                                      _isSmallPhone(width)
-                                          ? 16.sp
-                                          : 18.sp,
+                                      _isSmallPhone(width) ? 16.sp : 18.sp,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
                                     ),
@@ -858,9 +878,8 @@ class _AppartementPageState extends State<AppartementPage>
                                 ),
                               ],
 
-                              // HISTORIQUE
-                              FutureBuilder<
-                                  List<Map<String, dynamic>>>(
+                              //HISTORIQUE
+                              FutureBuilder<List<Map<String, dynamic>>>(
                                 future: _futureRecentApps,
                                 builder: (context, snapshot) {
                                   if (!snapshot.hasData ||
@@ -873,18 +892,25 @@ class _AppartementPageState extends State<AppartementPage>
                                   return RecentAppartementSection(
                                     apps: recentApps,
                                     accentColor: accentColor,
-
-                                    // ✅ AJOUT
                                     disponibilites: _disponibilites,
-
                                     onTapAll: () {
+                                      //PROTECTION AJOUTÉE ICI
+                                      if (_isNavigating) return;
+                                      setState(() => _isNavigating = true);
+
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
                                           const HistoriqueConsultationsPage(),
                                         ),
-                                      );
+                                      ).then((_) {
+                                        if (mounted) {
+                                          setState(
+                                                  () => _isNavigating = false
+                                          );
+                                        }
+                                      });
                                     },
                                     onTapCard: _navigateToDetail,
                                   );

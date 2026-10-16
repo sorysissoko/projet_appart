@@ -70,6 +70,9 @@ class ReservationPage extends StatefulWidget {
 
 // STATE
 class _ReservationPageState extends State<ReservationPage> {
+
+  bool _isProcessing = false;
+
   DateTime? _selectedStartDate;
   DateTime? _selectedEndDate;
 
@@ -401,40 +404,7 @@ class _ReservationPageState extends State<ReservationPage> {
 
 
   // FORMAT DATE FRANÇAIS
-  String _formatDateFrench(DateTime date) {
-    final day = date.day;
 
-    const monthNames = [
-      'janvier',
-      'février',
-      'mars',
-      'avril',
-      'mai',
-      'juin',
-      'juillet',
-      'août',
-      'septembre',
-      'octobre',
-      'novembre',
-      'décembre',
-    ];
-
-    const weekdayNames = [
-      'Lundi',
-      'Mardi',
-      'Mercredi',
-      'Jeudi',
-      'Vendredi',
-      'Samedi',
-      'Dimanche',
-    ];
-
-    final month = monthNames[date.month - 1];
-    final year = date.year;
-    final weekday = weekdayNames[date.weekday - 1];
-
-    return '$weekday $day $month $year';
-  }
 
 
   // PRIX PROPRIÉTAIRE
@@ -584,7 +554,7 @@ class _ReservationPageState extends State<ReservationPage> {
                     style: GoogleFonts.poppins(
                       fontSize: 22.sp,
                       fontWeight: FontWeight.bold,
-                      color: const Color(0xFFFF7B32),
+                      color: const Color(0xFF673A15),
                     ),
                   ),
                   Container(
@@ -690,7 +660,7 @@ class _ReservationPageState extends State<ReservationPage> {
               child: _buildTopNavigation(),
             ),
             Positioned(
-              bottom: 20,
+              bottom: 40,
               left: 0,
               right: 0,
               child: _buildReservationButton(),
@@ -974,7 +944,7 @@ class _ReservationPageState extends State<ReservationPage> {
         borderRadius: BorderRadius.circular(10.r),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF5EC),
+            color: const Color(0xFFFFF0E5),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: const Color(0xFFFFF5EC),
@@ -1134,7 +1104,7 @@ class _ReservationPageState extends State<ReservationPage> {
         borderRadius: BorderRadius.circular(10.r),
         child: Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF5EC),
+            color: const Color(0xFFFFF0E5),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: const Color(0xFFFFF5EC),
@@ -1252,7 +1222,7 @@ class _ReservationPageState extends State<ReservationPage> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF5EC),
+            color: const Color(0xFFFFF0E5),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: const Color(0xFFFFF5EC),
@@ -1305,15 +1275,16 @@ class _ReservationPageState extends State<ReservationPage> {
                     ),
                   ],
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: 14.h),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total',
+                      'Montant Total',
                       style: GoogleFonts.poppins(
                         fontSize: 20.sp,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFFFF6600)
                       ),
                     ),
                     IntrinsicWidth(
@@ -1364,7 +1335,7 @@ class _ReservationPageState extends State<ReservationPage> {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF5EC),
+            color: const Color(0xFFFFF0E5),
             borderRadius: BorderRadius.circular(10.r),
             border: Border.all(
               color: const Color(0xFFFFF5EC),
@@ -1570,7 +1541,7 @@ class _ReservationPageState extends State<ReservationPage> {
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF5EC),
+              color: const Color(0xFFFFF0E5),
               borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
                 color: const Color(0xFFFFF5EC),
@@ -1724,7 +1695,7 @@ class _ReservationPageState extends State<ReservationPage> {
           child: Container(
             width: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF5EC),
+              color: const Color(0xFFF6F6E9),
               borderRadius: BorderRadius.circular(10.r),
               border: Border.all(
                 color: const Color(0xFFFFF5EC),
@@ -1831,7 +1802,7 @@ class _ReservationPageState extends State<ReservationPage> {
         onTap: isButtonDisabled ? null : _demanderReservation,
         child: Container(
           width: 323.w,
-          height: 50.h,
+          height: 60.h,
           decoration: BoxDecoration(
             color: isButtonDisabled
                 ? const Color(0x8BC5521B)
@@ -1875,304 +1846,335 @@ class _ReservationPageState extends State<ReservationPage> {
 
   // CALENDRIER
   Future<void> _openDateRangeModal() async {
-    try {
-      final freshReservations =
-      await widget.databaseService.getReservationsByAppartement(
-        widget.appartement['id'].toString(),
-      );
+    if (_isProcessing) return;
 
-      if (!mounted) return;
+    _isProcessing = true;
 
-      final activeReservations =
-      _filterActiveReservations(freshReservations);
+    DateTime? tempStart = _selectedStartDate;
+    DateTime? tempEnd = _selectedEndDate;
 
-      _safeSetState(() {
-        _cachedData[_cacheKeyReservations] = activeReservations;
-        _reservedDatesCache = _getReservedDates();
-      });
+    String? warningMessage;
 
-      DateTime? tempStart = _selectedStartDate;
-      DateTime? tempEnd = _selectedEndDate;
+    final disponibilite = _cachedData[_cacheKeyDisponibilite];
 
-      final disponibilite = _cachedData[_cacheKeyDisponibilite];
+    final CalendarStyle calendarStyle = CalendarStyle(
+      todayDecoration: const BoxDecoration(
+        color: Color(0xFFFF1D1D),
+        shape: BoxShape.circle,
+      ),
+      rangeStartDecoration: const BoxDecoration(
+        color: Color(0xFFC5521B),
+        shape: BoxShape.circle,
+      ),
+      rangeEndDecoration: const BoxDecoration(
+        color: Color(0xFFC5521B),
+        shape: BoxShape.circle,
+      ),
+      withinRangeDecoration: const BoxDecoration(
+        color: Color(0xFFC5521B),
+        shape: BoxShape.circle,
+      ),
 
-      final CalendarStyle calendarStyle = CalendarStyle(
-        todayDecoration: const BoxDecoration(
-          color: Color(0xFFFF1D1D),
-          shape: BoxShape.circle,
-        ),
-        rangeStartDecoration: const BoxDecoration(
-          color: Color(0xFFC5521B),
-          shape: BoxShape.circle,
-        ),
-        rangeEndDecoration: const BoxDecoration(
-          color: Color(0xFFC5521B),
-          shape: BoxShape.circle,
-        ),
-        withinRangeDecoration: const BoxDecoration(
-          color: Color(0xFFC5521B),
-          shape: BoxShape.circle,
-        ),
-      );
+      rangeHighlightColor: Color(0xE5CCAD91),
 
-      final CalendarBuilders calendarBuilders = CalendarBuilders(
-        defaultBuilder: (context, day, focusedDay) {
-          final normalized = _normalizeDate(day);
+      withinRangeTextStyle: GoogleFonts.poppins(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+      ),
+    );
 
-          if (_reservedDatesCache.contains(normalized)) {
-            return Container(
-              margin: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.3),
-                shape: BoxShape.circle,
+
+    final CalendarBuilders calendarBuilders = CalendarBuilders(
+      defaultBuilder: (context, day, focusedDay) {
+        final normalized = DateTime(day.year, day.month, day.day);
+
+        if (_reservedDatesCache.contains(normalized)) {
+          return Container(
+            margin: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0x3A),
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${day.day}',
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          );
+        }
+
+        return null;
+      },
+    );
+
+    bool isRangeAvailable(DateTime start, DateTime end) {
+      final normalizedStart = DateTime(start.year, start.month, start.day);
+      final normalizedEnd = DateTime(end.year, end.month, end.day);
+
+      for (final reserved in _reservedDatesCache) {
+        if (normalizedStart.isBefore(reserved.add(const Duration(days: 1))) &&
+            normalizedEnd.isAfter(reserved)) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.r)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
-              alignment: Alignment.center,
-              child: Text(
-                '${day.day}',
-                style: GoogleFonts.poppins(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFF0E5),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 50.w,
+                      height: 5.h,
+                      margin: EdgeInsets.symmetric(vertical: 12.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xE5E3B28A),
+                        borderRadius: BorderRadius.circular(10.r),
+                      ),
+                    ),
+
+                    Flexible(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.symmetric(horizontal: 5.w),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Sélectionnez vos dates',
+                              style: GoogleFonts.poppins(
+                                fontSize: 18.sp,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+
+                            if (disponibilite != null &&
+                                disponibilite['date_debut'] != null)
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 30.w,
+                                  vertical: 5.h,
+                                ),
+                              ),
+
+                            //BANDEAU D'AVERTISSEMENT
+                            if (warningMessage != null)
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 20.w,
+                                  vertical: 8.h,
+                                ),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12.w,
+                                    vertical: 10.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFE5E5),
+                                    borderRadius: BorderRadius.circular(12.r),
+                                    border: Border.all(
+                                      color: const Color(0xFFFF6B6B),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.warning_amber_rounded,
+                                        color: const Color(0xFFFF3535),
+                                        size: 22.sp,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Expanded(
+                                        child: Text(
+                                          warningMessage!,
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF8A0000),
+                                          ),
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setModalState(() {
+                                            warningMessage = null;
+                                          });
+                                        },
+                                        child: Icon(
+                                          Icons.close,
+                                          size: 18.sp,
+                                          color: const Color(0xFF8A0000),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                            TableCalendar(
+                              locale: 'fr_FR',
+
+                              firstDay: DateTime.now(),
+                              lastDay: DateTime(DateTime.now().year + 2),
+                              focusedDay: tempStart ?? DateTime.now(),
+
+                              headerStyle: HeaderStyle(
+                                formatButtonVisible: false,
+                                titleCentered: true,
+                                titleTextStyle: GoogleFonts.poppins(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF673A15),
+                                ),
+                                leftChevronIcon: Icon(
+                                  Icons.chevron_left,
+                                  color: const Color(0xFFE36830),
+                                  size: 24.sp,
+                                ),
+                                rightChevronIcon: Icon(
+                                  Icons.chevron_right,
+                                  color: const Color(0xFFE36830),
+                                  size: 24.sp,
+                                ),
+                              ),
+
+                              daysOfWeekStyle: DaysOfWeekStyle(
+                                weekdayStyle: GoogleFonts.poppins(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF673A15),
+                                ),
+                                weekendStyle: GoogleFonts.poppins(
+                                  fontSize: 12.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFE36830),
+                                ),
+                              ),
+
+                              availableCalendarFormats: const {
+                                CalendarFormat.month: 'Mois',
+                              },
+                              rangeSelectionMode: RangeSelectionMode.toggledOn,
+                              rangeStartDay: tempStart,
+                              rangeEndDay: tempEnd,
+                              calendarStyle: calendarStyle,
+                              calendarBuilders: calendarBuilders,
+                              onRangeSelected: (start, end, focusedDay) {
+                                setModalState(() {
+                                  if (start != null && end != null) {
+                                    tempStart = start;
+                                    tempEnd = end;
+
+                                    if (!isRangeAvailable(start, end)) {
+                                      warningMessage =
+                                      'Certaines dates de cette plage sont déjà réservées.';
+                                    } else {
+                                      warningMessage = null;
+                                    }
+                                  } else if (start != null && end == null) {
+                                    tempStart = start;
+                                    tempEnd = null;
+                                    warningMessage = null;
+                                  }
+                                });
+                              },
+                            ),
+
+                            SizedBox(height: 15.h),
+
+                            //BOUTON CONFIRMER
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w),
+                              child: SizedBox(
+                                width: 200,
+                                height:50,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (tempStart == null || tempEnd == null) {
+                                      setModalState(() {
+                                        warningMessage =
+                                        'Veuillez sélectionner une date de début et une date de fin.';
+                                      });
+                                      return;
+                                    }
+
+                                    if (!isRangeAvailable(tempStart!, tempEnd!)) {
+                                      setModalState(() {
+                                        warningMessage =
+                                        "La plage sélectionnée n'est pas disponible.";
+                                      });
+                                      return;
+                                    }
+                                    final nouveauPrix = _calculateTotalValue(tempStart!, tempEnd!);
+
+                                    setState(() {
+                                      _selectedStartDate = tempStart;
+                                      _selectedEndDate = tempEnd;
+                                    });
+                                    _totalPrice = nouveauPrix;
+
+                                    Navigator.pop(context);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE36830),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(25.r),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Confirmer',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            SizedBox(height: 20.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             );
-          }
-          return null;
-        },
-      );
-
-      bool isRangeAvailable(DateTime start, DateTime end) {
-        final normalizedStart = _normalizeDate(start);
-        final normalizedEnd = _normalizeDate(end);
-
-        if (!normalizedEnd.isAfter(normalizedStart)) {
-          return false;
-        }
-
-        for (final reserved in _reservedDatesCache) {
-          if (reserved.isBefore(normalizedEnd) &&
-              reserved.isAfter(normalizedStart
-                  .subtract(const Duration(days: 1)))) {
-            return false;
-          }
-        }
-
-        final dispoStart = _parseDate(disponibilite?['date_debut']);
-        final dispoEnd = _parseDate(disponibilite?['date_fin']);
-
-        if (dispoStart != null &&
-            normalizedStart.isBefore(dispoStart)) {
-          return false;
-        }
-
-        if (dispoEnd != null &&
-            normalizedEnd.isAfter(dispoEnd)) {
-          return false;
-        }
-
-        return true;
-      }
-
-      await showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(25),
-          ),
-        ),
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setModalState) {
-              DateTime focusedDay = tempStart ?? DateTime.now();
-
-              return Padding(
-                padding: EdgeInsets.only(
-                  bottom:
-                  MediaQuery.of(context).viewInsets.bottom,
-                ),
-                child: SizedBox(
-                  height:
-                  MediaQuery.of(context).size.height * 0.64,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 50,
-                        height: 5,
-                        margin:
-                        const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFE6EB),
-                          borderRadius: BorderRadius.circular(30.r),
-                        ),
-                      ),
-                      Text(
-                        'Sélectionnez vos dates',
-                        style: GoogleFonts.poppins(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      if (disponibilite != null &&
-                          disponibilite['date_debut'] != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 30,
-                            vertical: 5,
-                          ),
-                          child: Text(
-                            'Disponible à partir du '
-                                '${_formatDateFrench(
-                              _parseDate(disponibilite['date_debut']) ??
-                                  DateTime.now(),
-                            )}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 12.sp,
-                              color: const Color(0xE58A4E1E),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      TableCalendar(
-                        firstDay: DateTime(
-                          DateTime.now().year,
-                          DateTime.now().month,
-                          DateTime.now().day,
-                        ),
-                        lastDay: DateTime(
-                          DateTime.now().year + 2,
-                          12,
-                          31,
-                        ),
-                        focusedDay: focusedDay,
-                        availableCalendarFormats: const {
-                          CalendarFormat.month: 'Mois',
-                        },
-                        rangeSelectionMode:
-                        RangeSelectionMode.toggledOn,
-                        rangeStartDay: tempStart,
-                        rangeEndDay: tempEnd,
-                        calendarStyle: calendarStyle,
-                        calendarBuilders: calendarBuilders,
-                        onPageChanged: (newFocusedDay) {
-                          focusedDay = newFocusedDay;
-                        },
-                        onRangeSelected:
-                            (start, end, focusedDay) {
-                          setModalState(() {
-                            if (start != null && end != null) {
-                              final normalizedStart =
-                              _normalizeDate(start);
-                              final normalizedEnd =
-                              _normalizeDate(end);
-
-                              if (!isRangeAvailable(
-                                normalizedStart,
-                                normalizedEnd,
-                              )) {
-                                ScaffoldMessenger.of(context)
-                                    .showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Certaines dates ne sont pas disponibles ❌',
-                                    ),
-                                  ),
-                                );
-                                return;
-                              }
-
-                              tempStart = normalizedStart;
-                              tempEnd = normalizedEnd;
-                            } else if (start != null) {
-                              tempStart = _normalizeDate(start);
-                              tempEnd = null;
-                            }
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 15),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (tempStart == null || tempEnd == null) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Veuillez sélectionner une date d’arrivée et une date de départ.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (!tempEnd!.isAfter(tempStart!)) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'La date de départ doit être après la date d’arrivée.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (!isRangeAvailable(tempStart!, tempEnd!)) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  "La plage sélectionnée n'est pas disponible.",
-                                ),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                            return;
-                          }
-
-                          final newTotal = _calculateTotalValue(
-                            tempStart!,
-                            tempEnd!,
-                          );
-
-                          _safeSetState(() {
-                            _selectedStartDate = tempStart;
-                            _selectedEndDate = tempEnd;
-                            _totalPrice = newTotal;
-                            _clearPaymentSelection();
-                          });
-
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                          const Color(0xFFE36830),
-                        ),
-                        child: Text(
-                          'Confirmer',
-                          style: GoogleFonts.poppins(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.w300,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        _showErrorMessage(
-          'Impossible de charger les disponibilités : $e',
+          },
         );
-      }
-    }
+      },
+    );
+
+    _isProcessing = false;
+
+    _loadReservations();
+
   }
 
 
@@ -2187,8 +2189,7 @@ class _ReservationPageState extends State<ReservationPage> {
   Future<void> _modifierOccupants() async {
     final maxClientsFromRole = int.tryParse(
       widget.appartementRole?['nombre_client']?.toString() ?? '',
-    ) ??
-        10;
+    ) ?? 10;
 
     final maxAdultes =
     maxClientsFromRole < 1 ? 1 : maxClientsFromRole;
@@ -2223,7 +2224,7 @@ class _ReservationPageState extends State<ReservationPage> {
 
             return Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Color(0xFFFFF0E5),
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(20.r),
                   topRight: Radius.circular(20.r),
@@ -2244,7 +2245,7 @@ class _ReservationPageState extends State<ReservationPage> {
                         margin:
                         EdgeInsets.symmetric(vertical: 10.h),
                         decoration: BoxDecoration(
-                          color: Colors.grey[300],
+                          color: const Color(0xE5E3B28A),
                           borderRadius:
                           BorderRadius.circular(3.r),
                         ),
@@ -2263,7 +2264,7 @@ class _ReservationPageState extends State<ReservationPage> {
                               style: GoogleFonts.poppins(
                                 fontSize: 20.sp,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFF7B32),
+                                color: const Color(0xFF673A15),
                               ),
                             ),
                             IconButton(
@@ -2395,8 +2396,7 @@ class _ReservationPageState extends State<ReservationPage> {
                             Container(
                               padding: EdgeInsets.all(12.r),
                               decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius:
+                                color: Color(0xFFFFF5EC),                                  borderRadius:
                                 BorderRadius.circular(8.r),
                               ),
                               child: Row(
@@ -2542,13 +2542,13 @@ class _ReservationPageState extends State<ReservationPage> {
                 height: 40.h,
                 decoration: BoxDecoration(
                   color: count > min
-                      ? Colors.grey[200]
-                      : Colors.grey[100],
+                      ? Color(0xFFE1CAB4)
+                      : Color(0xFFFFF5EC),
                   borderRadius: BorderRadius.circular(20.r),
                   border: Border.all(
                     color: count > min
-                        ? Colors.grey[400]!
-                        : Colors.grey[300]!,
+                        ? Color(0xFFE1CAB4)
+                        : Color(0xFFFFF5EC),
                   ),
                 ),
                 child: Center(
@@ -2622,7 +2622,7 @@ class _ReservationPageState extends State<ReservationPage> {
       builder: (context) {
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Color(0xFFFFF0E5),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(20.r),
               topRight: Radius.circular(20.r),
@@ -2637,7 +2637,7 @@ class _ReservationPageState extends State<ReservationPage> {
                   height: 5.h,
                   margin: EdgeInsets.symmetric(vertical: 10.h),
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: const Color(0xE5E3B28A),
                     borderRadius: BorderRadius.circular(3.r),
                   ),
                 ),
@@ -2655,7 +2655,7 @@ class _ReservationPageState extends State<ReservationPage> {
                         style: GoogleFonts.poppins(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFFF7B32),
+                          color: const Color(0xFF673A15),
                         ),
                       ),
                       IconButton(
@@ -2722,7 +2722,7 @@ class _ReservationPageState extends State<ReservationPage> {
   Future<void> openPaymentModal() async {
     if (_selectedStartDate == null || _selectedEndDate == null) {
       _showSafeSnackBar(
-        'Veuillez d’abord sélectionner vos dates.',
+        'Veuillez d\'abord sélectionner vos dates.',
       );
       return;
     }
@@ -2738,6 +2738,15 @@ class _ReservationPageState extends State<ReservationPage> {
       return;
     }
 
+    //CALCUL DU MONTANT SELON LE MODE
+    final double montantAPayer = _payerTotalite
+        ? _totalPrice
+        : (_totalPrice * 0.30).roundToDouble();
+
+    debugPrint('💳 Mode : ${_payerTotalite ? "Totalité" : "Acompte 30%"}');
+    debugPrint('💰 Montant à payer : $montantAPayer FCFA');
+    debugPrint('💰 Reste à payer : ${_totalPrice - montantAPayer} FCFA');
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -2747,7 +2756,12 @@ class _ReservationPageState extends State<ReservationPage> {
         ),
       ),
       builder: (context) => PaymentBottomSheet(
-        amount: _totalPrice,
+        amount: montantAPayer,
+
+        totalAmount: _totalPrice,
+        isDeposit: !_payerTotalite,
+        depositPercentage: 30,
+
         onSuccess: (
             method,
             phone,
@@ -2763,8 +2777,7 @@ class _ReservationPageState extends State<ReservationPage> {
             _selectedPaymentMethod = method;
             _selectedPaymentPhone = phone;
             _selectedPaymentIndicatif = indicatifPaiement;
-            _selectedPaymentProviderPaymentMethodId =
-                providerPaymentMethodId;
+            _selectedPaymentProviderPaymentMethodId = providerPaymentMethodId;
             _selectedPaymentProvider = provider;
             _selectedPaymentCardBrand = cardBrand;
             _selectedPaymentCardLast4 = cardLast4;
