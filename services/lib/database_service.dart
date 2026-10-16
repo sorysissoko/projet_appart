@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1405,7 +1406,6 @@ class DatabaseService {
 
 
   // CRÉER UNE RÉSERVATION
-
   Future<String> createReservation({
     required String appartementId,
     required String dateDebut,
@@ -1432,24 +1432,19 @@ class DatabaseService {
       final user = supabase.auth.currentUser;
 
       if (user == null) {
-        throw Exception(
-          'Utilisateur non connecté.',
-        );
+        throw Exception('Utilisateur non connecté.');
       }
 
       // MODE DE PAIEMENT
-
       final howToPay = momentPaiement.trim();
 
-      if (howToPay != 'totalite' &&
-          howToPay != 'acompte') {
+      if (howToPay != 'totalite' && howToPay != 'acompte') {
         throw Exception(
           'Le mode de paiement sélectionné est invalide.',
         );
       }
 
       // MOYEN DE PAIEMENT
-
       final methode = methodePaiement.trim();
 
       const methodesAutorisees = {
@@ -1466,21 +1461,19 @@ class DatabaseService {
       }
 
       // VOYAGEURS
-
       if (adultes < 1) {
         throw Exception(
-          'Le nombre d’adultes doit être supérieur ou égal à 1.',
+          'Le nombre d\'adultes doit être supérieur ou égal à 1.',
         );
       }
 
       if (enfants < 0) {
         throw Exception(
-          'Le nombre d’enfants ne peut pas être négatif.',
+          'Le nombre d\'enfants ne peut pas être négatif.',
         );
       }
 
       // VALIDATION PAIEMENT MOBILE
-
       if (methode == 'orange_money' ||
           methode == 'moov_money' ||
           methode == 'wave') {
@@ -1493,12 +1486,11 @@ class DatabaseService {
       }
 
       // VALIDATION CARTE
-
       if (methode == 'carte_bancaire') {
         if (providerPaymentMethodId == null ||
             providerPaymentMethodId.trim().isEmpty) {
           throw Exception(
-            'L’identifiant sécurisé du moyen de paiement est obligatoire.',
+            'L\'identifiant sécurisé du moyen de paiement est obligatoire.',
           );
         }
       }
@@ -1521,8 +1513,7 @@ class DatabaseService {
           'p_indicatif_paiement': indicatifPaiement,
 
           // Carte bancaire
-          'p_provider_payment_method_id':
-          providerPaymentMethodId,
+          'p_provider_payment_method_id': providerPaymentMethodId,
 
           // Prestataire
           'p_provider': provider,
@@ -1533,36 +1524,31 @@ class DatabaseService {
 
       if (response == null) {
         throw Exception(
-          'La réservation n’a pas pu être créée.',
+          'La réservation n\'a pas pu être créée.',
         );
       }
 
+      unawaited(marquerReservationsTerminees());
+
       // UUID DIRECT
       if (response is String) {
-        debugPrint(
-          'Réservation créée : $response',
-        );
-
+        debugPrint('Réservation créée : $response');
         return response;
       }
 
       // JSON
       if (response is Map) {
         final reservationId =
-            response['reservation_id'] ??
-                response['id'];
+            response['reservation_id'] ?? response['id'];
 
         if (reservationId == null) {
           throw Exception(
-            'Le serveur n’a pas retourné '
-                'l’identifiant de la réservation.',
+            'Le serveur n\'a pas retourné '
+                'l\'identifiant de la réservation.',
           );
         }
 
-        debugPrint(
-          'Réservation créée : $reservationId',
-        );
-
+        debugPrint('Réservation créée : $reservationId');
         return reservationId.toString();
       }
 
@@ -1571,15 +1557,10 @@ class DatabaseService {
             'de la création de la réservation.',
       );
     } on PostgrestException catch (e) {
-      debugPrint(
-        'PostgreSQL create_reservation',
-      );
-
+      debugPrint('PostgreSQL create_reservation');
       throw Exception(e.message);
     } catch (e) {
-      debugPrint(
-        'createReservation: $e',
-      );
+      debugPrint('createReservation: $e');
       rethrow;
     }
   }
@@ -1777,6 +1758,32 @@ class DatabaseService {
     }
   }
 
+
+  Future<int> marquerReservationsTerminees() async {
+    try {
+      final response = await supabase.rpc(
+        'marquer_reservations_terminees',
+      );
+
+      final count = (response is int)
+          ? response
+          : int.tryParse(response?.toString() ?? '0') ?? 0;
+
+      if (count > 0) {
+        debugPrint(
+          '$count réservation(s) passée(s) en terminée',
+        );
+      }
+
+      return count;
+    } catch (e) {
+      debugPrint(
+        'Erreur marquage réservations terminées : $e',
+      );
+      return 0;
+    }
+  }
+
   Future<Map<String, dynamic>> refuserReservation(
       String reservationId,
       ) async {
@@ -1910,6 +1917,38 @@ class DatabaseService {
         'modifierDatesReservation: $e',
       );
       rethrow;
+    }
+  }
+
+
+  //notattion d'un appartement
+  Future<bool> peutNoterAppartement(String appartementId) async {
+    try {
+      final user = supabase.auth.currentUser;
+
+      if (user == null) {
+        debugPrint('Utilisateur non connecté');
+        return false;
+      }
+
+      final response = await supabase.rpc(
+        'peut_noter_appartement',
+        params: {
+          'p_appartement_id': appartementId,
+          'p_user_id': user.id,
+        },
+      );
+
+      final peutNoter = response == true;
+
+      debugPrint(
+        'peutNoterAppartement($appartementId) = $peutNoter',
+      );
+
+      return peutNoter;
+    } catch (e) {
+      debugPrint('Erreur peutNoterAppartement : $e');
+      return false;
     }
   }
 
