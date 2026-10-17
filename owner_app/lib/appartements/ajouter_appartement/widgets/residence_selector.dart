@@ -2,14 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:owner_app/core/theme/app_theme.dart';
 
-/// Dropdown de sélection d'une résidence existante.
-///
-/// Affiche aussi l'état vide (aucune résidence).
 class ResidenceSelector extends StatelessWidget {
   final List<Map<String, dynamic>> residences;
   final String? selectedId;
-
-  /// Nullable : permet de désactiver le dropdown en passant `null`.
   final ValueChanged<String?>? onChanged;
 
   const ResidenceSelector({
@@ -23,47 +18,37 @@ class ResidenceSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     if (residences.isEmpty) return _buildEmptyState();
 
-    return DropdownButtonFormField<String>(
-      initialValue: selectedId,
-      isExpanded: true,
-      dropdownColor: const Color(0xFFF8FAFC),
-      decoration: _decoration(),
-      hint: Text(
-        'Sélectionner une résidence',
-        style: GoogleFonts.nunito(color: const Color(0xFF8A94A6)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1.5,
+        ),
       ),
-      items: residences.map(_buildItem).toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  InputDecoration _decoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 13,
-      ),
-      border: _border(),
-      enabledBorder: _border(),
-      focusedBorder: _borderFocused(),
-    );
-  }
-
-  OutlineInputBorder _border() {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
-    );
-  }
-
-  OutlineInputBorder _borderFocused() {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
-      borderSide: const BorderSide(
-        color: AppColors.cardForeground,
-        width: 1.5,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedId,
+          isExpanded: true,
+          isDense: true,
+          borderRadius: BorderRadius.circular(12),
+          dropdownColor: const Color(0xFFF8FAFC),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFF64748B),
+          ),
+          hint: Text(
+            'Sélectionner une résidence',
+            style: GoogleFonts.nunito(
+              color: const Color(0xFF8A94A6),
+              fontSize: 14,
+            ),
+          ),
+          items: residences.map(_buildItem).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -72,38 +57,22 @@ class ResidenceSelector extends StatelessWidget {
     final String id = residence['id']?.toString() ?? '';
     final String nom = residence['nom']?.toString().trim() ?? '';
     final String ville = residence['ville']?.toString().trim() ?? '';
-    final String adresse = residence['adresse']?.toString().trim() ?? '';
     final String status = residence['status']?.toString() ?? 'en_attente';
 
     final String titre = nom.isNotEmpty ? nom : 'Résidence sans nom';
 
+    // 👇 UNE SEULE LIGNE
     return DropdownMenuItem<String>(
       value: id,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            titre,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.nunito(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.inputText,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$ville • $adresse • ${formatResidenceStatus(status)}',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.nunito(
-              fontSize: 11,
-              color: AppColors.mutedForeground,
-            ),
-          ),
-        ],
+      child: Text(
+        '$titre • $ville • ${formatResidenceStatus(status)}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: GoogleFonts.nunito(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: AppColors.inputText,
+        ),
       ),
     );
   }
@@ -143,7 +112,6 @@ class ResidenceSelector extends StatelessWidget {
   }
 }
 
-/// Traduit un statut technique en libellé français lisible.
 String formatResidenceStatus(String status) {
   switch (status) {
     case 'validee':

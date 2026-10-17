@@ -58,6 +58,7 @@ class StepResidence extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: SizedBox(
                   width: 320,
+                  height: 50,
                   child: ResidenceSelector(
                     residences: form.residences,
                     selectedId: form.selectedResidenceId,
