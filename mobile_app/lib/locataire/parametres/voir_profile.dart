@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mobile_app/locataire/parametres/profile.dart';
 import 'package:service/auth_service.dart';
 
 class VoirProfilePage extends StatelessWidget {
@@ -40,11 +41,9 @@ class VoirProfilePage extends StatelessWidget {
                       children: [
                         ClipRRect(
                           borderRadius: BorderRadius.circular(50),
-                          child: Image.asset(
-                            "assets/images/utilisateur.png",
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
+                          child: UserAvatar(
+                            initials: "U", // Tu peux récupérer les initiales du profil si tu veux
+                            size: 80,
                           ),
                         ),
                         const SizedBox(height: 10),

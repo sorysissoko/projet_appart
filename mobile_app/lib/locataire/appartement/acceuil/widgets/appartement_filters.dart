@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:service/auth_service.dart';
+import 'package:service/database_service.dart';
 
 class AppartementFilters extends StatefulWidget {
   final TabController tabController;
@@ -435,9 +436,11 @@ class _AppartementFiltersState
 // ============================================================
 // PROFILE AVATAR
 // ============================================================
+// ============================================================
+// PROFILE AVATAR (AVEC PHOTO SUPABASE)
+// ============================================================
 
-class ProfileAvatar
-    extends StatelessWidget {
+class ProfileAvatar extends StatefulWidget {
   final String prenom;
   final String nom;
   final double size;
@@ -449,9 +452,41 @@ class ProfileAvatar
     this.size = 42,
   });
 
+  @override
+  State<ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<ProfileAvatar> {
+  String? _imageUrl;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    try {
+      final url = await DatabaseService().getCurrentUserAvatarUrl();
+      if (mounted) {
+        setState(() {
+          _imageUrl = url;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   String getInitials() {
-    final p = prenom.trim();
-    final n = nom.trim();
+    final p = widget.prenom.trim();
+    final n = widget.nom.trim();
 
     return '${p.isNotEmpty ? p[0] : ''}'
         '${n.isNotEmpty ? n[0] : ''}'
@@ -459,38 +494,80 @@ class ProfileAvatar
   }
 
   @override
-  Widget build(
-      BuildContext context,
-      ) {
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        width: widget.size.w,
+        height: widget.size.w,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Color(0xFFE85D26),
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 15,
+            height: 15,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Si on a une URL d'image
+    if (_imageUrl != null && _imageUrl!.isNotEmpty) {
+      return Container(
+        width: widget.size.w,
+        height: widget.size.w,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white,
+            width: 1.5,
+          ),
+        ),
+        child: ClipOval(
+          child: Image.network(
+            _imageUrl!,
+            width: widget.size.w,
+            height: widget.size.w,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return _buildInitials();
+            },
+          ),
+        ),
+      );
+    }
+
+    return _buildInitials();
+  }
+
+  Widget _buildInitials() {
     return Container(
-      width: size.w,
-      height: size.w,
-      decoration:
-      const BoxDecoration(
+      width: widget.size.w,
+      height: widget.size.w,
+      decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        gradient:
-        LinearGradient(
+        gradient: LinearGradient(
           colors: [
             Color(0xFFE85D26),
             Color(0xFFFF8A50),
           ],
-          begin:
-          Alignment.topLeft,
-          end:
-          Alignment.bottomRight,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
       child: Center(
         child: Text(
-          prenom.isEmpty &&
-              nom.isEmpty
+          widget.prenom.isEmpty && widget.nom.isEmpty
               ? '??'
               : getInitials(),
           style: GoogleFonts.poppins(
-            fontSize:
-            (size * 0.35).sp,
-            fontWeight:
-            FontWeight.bold,
+            fontSize: (widget.size * 0.35).sp,
+            fontWeight: FontWeight.bold,
             color: Colors.white,
             letterSpacing: 0.5,
           ),

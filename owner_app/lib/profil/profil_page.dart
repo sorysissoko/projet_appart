@@ -489,7 +489,7 @@ class _ProfilePageState extends State<ProfilePage> {
               .from('avatars')
               .createSignedUrl(photoPath, 3600);
         } catch (e) {
-          debugPrint('⚠️ Impossible de charger l’avatar : $e');
+          debugPrint('Impossible de charger l’avatar : $e');
         }
       }
 

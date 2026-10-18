@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:phosphor_flutter/phosphor_flutter.dart';
 import 'package:service/auth_service.dart';
+import 'package:service/database_service.dart';
 import 'package:service/snackbar_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -954,43 +955,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
 
                       // AVATAR
-
-                      Container(
-                        width: 64.w,
-                        height: 64.w,
-                        decoration:
-                        BoxDecoration(
-                          shape:
-                          BoxShape.circle,
-                          color: Colors.white
-                              .withValues(
-                            alpha: 0.25,
-                          ),
-                          border:
-                          Border.all(
-                            color: Colors
-                                .white
-                                .withValues(
-                              alpha: 0.4,
-                            ),
-                            width: 2.w,
-                          ),
-                        ),
-                        alignment:
-                        Alignment.center,
-                        child: Text(
-                          initials,
-                          style:
-                          GoogleFonts.inter(
-                            fontSize:
-                            18.sp,
-                            fontWeight:
-                            FontWeight
-                                .w700,
-                            color: Colors
-                                .white,
-                          ),
-                        ),
+                      UserAvatar(
+                        initials: initials,
+                        size: 64.w,
                       ),
 
                       SizedBox(
@@ -1734,3 +1701,96 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 }
 
+class UserAvatar extends StatefulWidget {
+  final String initials;
+  final double size;
+
+  const UserAvatar({super.key, required this.initials, this.size = 64});
+
+  @override
+  State<UserAvatar> createState() => _UserAvatarState();
+}
+
+class _UserAvatarState extends State<UserAvatar> {
+  String? _imageUrl;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvatar();
+  }
+
+  Future<void> _loadAvatar() async {
+    try {
+      // Appel à ta fonction déjà existante dans DatabaseService
+      final url = await DatabaseService().getCurrentUserAvatarUrl();
+      if (mounted) {
+        setState(() {
+          _imageUrl = url;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.25),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: 2,
+        ),
+      ),
+      child: _isLoading
+          ? const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Colors.white,
+            strokeWidth: 2,
+          ),
+        ),
+      )
+          : (_imageUrl != null && _imageUrl!.isNotEmpty)
+          ? ClipOval(
+        child: Image.network(
+          _imageUrl!,
+          width: widget.size,
+          height: widget.size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Si l'image ne charge pas, on affiche les initiales
+            return _buildInitials();
+          },
+        ),
+      )
+          : _buildInitials(),
+    );
+  }
+
+  Widget _buildInitials() {
+    return Center(
+      child: Text(
+        widget.initials,
+        style: GoogleFonts.inter(
+          fontSize: widget.size * 0.28,
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
