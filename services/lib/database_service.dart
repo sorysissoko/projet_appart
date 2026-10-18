@@ -373,7 +373,7 @@ class DatabaseService {
           .from('appartements')
           .select('''
           *,
-          residence:residences!appartements_residence_proprietaire_fk (
+          residence:residences!appartements_residence_id_fkey (
             id,
             nom,
             ville,
@@ -422,7 +422,7 @@ class DatabaseService {
           .from('appartements')
           .select('''
           *,
-          residence:residences!appartements_residence_proprietaire_fk (
+          residence:residences!appartements_residence_id_fkey (
             id,
             nom,
             ville,
@@ -1599,7 +1599,7 @@ class DatabaseService {
             *,
             appartement:appartements!reservations_appartement_id_fkey (
                 *,
-                residence:residences!appartements_residence_proprietaire_fk (
+                residence:residences!appartements_residence_id_fkey (
                   id,
                   nom,
                   ville,
@@ -1965,7 +1965,7 @@ class DatabaseService {
             *,
             appartement:appartements!reservations_appartement_id_fkey (
             *,
-            residence:residences!appartements_residence_proprietaire_fk (
+            residence:residences!appartements_residence_id_fkey (
               id,
               nom,
               ville,
@@ -2163,7 +2163,7 @@ class DatabaseService {
             created_at,
             status,
           
-            residence:residences!appartements_residence_proprietaire_fk (
+            residence:residences!appartements_residence_id_fkey (
               id,
               nom,
               ville,
@@ -2279,7 +2279,7 @@ class DatabaseService {
           .from('appartements')
           .select('''
           *,
-          residence:residences!appartements_residence_proprietaire_fk (
+          residence:residences!appartements_residence_id_fkey (
             id,
             nom,
             ville,
@@ -3979,7 +3979,7 @@ class DatabaseService {
           .from('appartements')
           .select('''
           *,
-          residence:residences!appartements_residence_proprietaire_fk (
+          residence:residences!appartements_residence_id_fkey (
             id,
             nom,
             ville,

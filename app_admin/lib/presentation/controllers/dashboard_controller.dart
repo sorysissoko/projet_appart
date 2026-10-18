@@ -336,7 +336,7 @@ class DashboardController extends ChangeNotifier {
     disponibilite_status,
     proprietaire_id,
 
-    residence:residences!appartements_residence_proprietaire_fk (
+    residence:residences!appartements_residence_id_fkey (
       id,
       nom,
       ville,

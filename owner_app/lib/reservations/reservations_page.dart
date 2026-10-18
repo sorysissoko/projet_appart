@@ -417,7 +417,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
           .from('appartements')
           .select('''
             *,
-            residence:residences!appartements_residence_proprietaire_fk (
+            residence:residences!appartements_residence_id_fkey (
               id,
               nom,
               ville
