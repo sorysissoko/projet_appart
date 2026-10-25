@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:service/snackbar_service.dart';
 
 class IdentityCaptureModal extends StatefulWidget {
   const IdentityCaptureModal({
@@ -137,7 +138,6 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
     }
   }
 
-
   // CHOIX CAMÉRA GALERIE
 
   Future<void> _showSourceChoice({required bool recto}) async {
@@ -149,6 +149,7 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
 
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -468,38 +469,15 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
 
   void _showError(String message) {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..removeCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('❌ $message'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(12.w),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-        ),
-      );
+    SnackBarService().showError(message);
   }
 
   void _showInfo(String message) {
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context)
-      ..removeCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text('✓ $message'),
-          backgroundColor: _success,
-          behavior: SnackBarBehavior.floating,
-          margin: EdgeInsets.all(12.w),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-        ),
-      );
+    SnackBarService().showSuccess(
+      message,
+      icon: Icons.check_rounded,
+    );
   }
 
   // BUILD PRINCIPAL
@@ -565,10 +543,10 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
         _buildHeaderInstruction(),
         SizedBox(height: 20.h),
 
-        //RECTO
+        // RECTO
         _buildPhotoSection(recto: true),
 
-        //VERSO uniquement si obligatoire
+        // VERSO uniquement si obligatoire
         if (_requiresVerso) ...[
           SizedBox(height: 22.h),
           _buildPhotoSection(recto: false),
@@ -907,7 +885,6 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
           : Stack(
         fit: StackFit.expand,
         children: [
-
           InteractiveViewer(
             minScale: 1.0,
             maxScale: 5.0,
@@ -998,7 +975,6 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
       ),
     );
   }
-
 
   Widget _photoQualityBadge({required bool confirmed}) {
     return Container(

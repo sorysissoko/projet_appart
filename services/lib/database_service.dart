@@ -24,6 +24,47 @@ class DatabaseService {
   }
 
 
+  // VÉRIFICATION ANTI-DOUBLON RÉSIDENCE
+
+  /// Vérifie si une résidence identique existe déjà pour ce propriétaire.
+  ///
+  /// Critères de doublon :
+  /// - même propriétaire
+  /// - même ville (insensible à la casse)
+  /// - même adresse (insensible à la casse)
+  /// - statut non supprimé
+  Future<Map<String, dynamic>?> findExistingResidence({
+    required String ville,
+    required String adresse,
+  }) async {
+    final userId = currentUserId();
+
+    if (userId == null) {
+      throw Exception('Utilisateur non connecté.');
+    }
+
+    try {
+      final response = await supabase
+          .from('residences')
+          .select('id, nom, ville, adresse, status, created_at')
+          .eq('proprietaire_id', userId)
+          .ilike('ville', ville.trim())
+          .ilike('adresse', adresse.trim())
+          .neq('status', 'supprimee')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      return Map<String, dynamic>.from(response);
+    } on PostgrestException catch (e) {
+      debugPrint('findExistingResidence : ${e.message}');
+      return null;
+    }
+  }
+
+
   Future<String> createResidence({
     String? nom,
     String? description,
@@ -59,6 +100,21 @@ class DatabaseService {
       }
     }
 
+    // 🔴 ANTI-DOUBLON — VÉRIFICATION AVANT INSERTION
+    final existing = await findExistingResidence(
+      ville: ville,
+      adresse: adresse,
+    );
+
+    if (existing != null) {
+      final statut = existing['status']?.toString() ?? 'inconnu';
+      throw Exception(
+        'Une résidence à cette adresse existe déjà dans votre compte '
+            '(statut : $statut).\n'
+            'Si vous devez la remplacer, modifiez-la ou supprimez-la '
+            'depuis vos résidences.',
+      );
+    }
 
     final data = <String, dynamic>{
       'proprietaire_id': userId,
@@ -73,7 +129,6 @@ class DatabaseService {
     };
 
     try {
-
       final result = await supabase
           .from('residences')
           .insert(data)
@@ -82,6 +137,15 @@ class DatabaseService {
 
       return result['id'].toString();
     } on PostgrestException catch (e) {
+      // Contrainte UNIQUE violée → doublon
+      if (e.code == '23505') {
+        throw Exception(
+          'Cette résidence existe déjà. '
+              'Modifiez ou supprimez l’ancienne avant d’en créer une nouvelle.',
+        );
+      }
+
+      debugPrint('createResidence : ${e.message}');
       throw Exception(e.message);
     } catch (e) {
       debugPrint('Erreur createResidence: $e');
@@ -181,6 +245,39 @@ class DatabaseService {
   }
 
 
+  // VÉRIFICATION ANTI-DOUBLON APPARTEMENT
+
+  Future<Map<String, dynamic>?> findExistingAppartement({
+    required String residenceId,
+    required String titre,
+  }) async {
+    final userId = currentUserId();
+
+    if (userId == null) {
+      throw Exception('Utilisateur non connecté.');
+    }
+
+    try {
+      final response = await supabase
+          .from('appartements')
+          .select('id, titre, status, created_at')
+          .eq('proprietaire_id', userId)
+          .eq('residence_id', residenceId.trim())
+          .ilike('titre', titre.trim())
+          .neq('status', 'supprime')
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      return Map<String, dynamic>.from(response);
+    } on PostgrestException catch (e) {
+      debugPrint('findExistingAppartement : ${e.message}');
+      return null;
+    }
+  }
+
   // APPARTEMENTS
 
   Future<String> createAppartement({
@@ -199,39 +296,27 @@ class DatabaseService {
     }
 
     if (residenceId.trim().isEmpty) {
-      throw Exception(
-        'La résidence est obligatoire.',
-      );
+      throw Exception('La résidence est obligatoire.');
     }
 
     if (titre.trim().isEmpty) {
-      throw Exception(
-        'Le titre de l’appartement est obligatoire.',
-      );
+      throw Exception('Le titre de l’appartement est obligatoire.');
     }
 
     if (description.trim().isEmpty) {
-      throw Exception(
-        'La description de l’appartement est obligatoire.',
-      );
+      throw Exception('La description de l’appartement est obligatoire.');
     }
 
     if (type.trim().isEmpty) {
-      throw Exception(
-        'Le type d’appartement est obligatoire.',
-      );
+      throw Exception('Le type d’appartement est obligatoire.');
     }
 
     if (prix < 0) {
-      throw Exception(
-        'Le prix ne peut pas être négatif.',
-      );
+      throw Exception('Le prix ne peut pas être négatif.');
     }
 
     try {
-
-      // Vérification que la résidence appartient bien au propriétaire
-
+      // 1. Vérification que la résidence appartient bien au propriétaire
       final residence = await supabase
           .from('residences')
           .select('id, proprietaire_id, status')
@@ -246,8 +331,22 @@ class DatabaseService {
         );
       }
 
-      // Création appartement ville / adresse ne sont plus envoyées.
+      // 2. 🔴 ANTI-DOUBLON — VÉRIFICATION AVANT INSERTION
+      final existing = await findExistingAppartement(
+        residenceId: residenceId,
+        titre: titre,
+      );
 
+      if (existing != null) {
+        final statut = existing['status']?.toString() ?? 'inconnu';
+        throw Exception(
+          'Un appartement avec ce titre existe déjà dans cette résidence '
+              '(statut : $statut).\n'
+              'Modifiez ou supprimez l’ancien avant d’en créer un nouveau.',
+        );
+      }
+
+      // 3. Insertion
       final data = <String, dynamic>{
         'proprietaire_id': userId,
         'residence_id': residenceId,
@@ -268,18 +367,23 @@ class DatabaseService {
 
       return result['id'].toString();
     } on PostgrestException catch (e) {
-      debugPrint(
-        'createAppartement: ${e.message}',
-      );
+      // Contrainte UNIQUE violée → doublon (race condition)
+      if (e.code == '23505') {
+        throw Exception(
+          'Cet appartement existe déjà dans cette résidence. '
+              'Modifiez ou supprimez l’ancien avant d’en créer un nouveau.',
+        );
+      }
+
+      debugPrint('createAppartement: ${e.message}');
       throw Exception(e.message);
     } catch (e) {
-      debugPrint(
-        'Erreur createAppartement: $e',
-      );
+      debugPrint('Erreur createAppartement: $e');
       rethrow;
     }
   }
 
+  
   Future<void> updateAppartement({
     required String appartementId,
     String? residenceId,
@@ -3105,7 +3209,54 @@ class DatabaseService {
     }
   }
 
-  // AJOUT D'UN DOCUMENT UTILISATEUR
+
+  // VÉRIFICATION ANTI-DOUBLON DOCUMENT D'IDENTITÉ
+
+  Future<Map<String, dynamic>?> findExistingIdentityDocument({
+    required String numeroDocument,
+    required String paysEmission,
+    required String typeDocument,
+  }) async {
+    final userId = currentUserId();
+
+    if (userId == null) {
+      throw Exception('Utilisateur non connecté.');
+    }
+
+    final normalizedNumero = _normalizeDocumentNumber(numeroDocument);
+    final normalizedPays = paysEmission.trim();
+
+    try {
+      final response = await supabase
+          .from('documents')
+          .select('''
+          id,
+          type_document,
+          cote_document,
+          numero_document,
+          pays_emission,
+          statut,
+          created_at
+        ''')
+          .eq('user_id', userId)
+          .eq('categorie', 'identite')
+          .eq('type_document', typeDocument)
+          .eq('numero_document', normalizedNumero)
+          .eq('pays_emission', normalizedPays)
+          .inFilter('statut', ['en_attente', 'en_verification', 'valide'])
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (response == null) return null;
+
+      return Map<String, dynamic>.from(response);
+    } on PostgrestException catch (e) {
+      debugPrint('findExistingIdentityDocument : ${e.message}');
+      return null;
+    }
+  }
+
   // AJOUT D'UN DOCUMENT UTILISATEUR / RÉSIDENCE / APPARTEMENT
   Future<Map<String, dynamic>> uploadCurrentUserDocument({
     required Uint8List bytes,
@@ -3393,51 +3544,29 @@ class DatabaseService {
 
       return Map<String, dynamic>.from(response);
     } on PostgrestException catch (e) {
-
-      // NETTOYAGE STORAGE SI INSERT DB ÉCHOUÉ
-
+      // Nettoyage Storage...
       try {
         await supabase.storage
             .from('documents')
             .remove([storagePath]);
       } catch (cleanupError) {
-        debugPrint(
-          'Nettoyage Storage impossible : '
-              '$cleanupError',
+        debugPrint('Nettoyage Storage impossible : $cleanupError');
+      }
+
+      // Contrainte UNIQUE violée → doublon
+      if (e.code == '23505') {
+        throw Exception(
+          'Ce document existe déjà. '
+              'Supprimez l’ancien avant d’en envoyer un nouveau.',
         );
       }
 
-      debugPrint(
-        'uploadCurrentUserDocument DB : '
-            '${e.message}',
-      );
-
+      debugPrint('uploadCurrentUserDocument DB : ${e.message}');
       throw Exception(e.message);
-    } catch (e) {
-
-      // NETTOYAGE EN CAS D'ERREUR
-
-
-      try {
-        await supabase.storage
-            .from('documents')
-            .remove([storagePath]);
-      } catch (cleanupError) {
-        debugPrint(
-          'Nettoyage Storage impossible : '
-              '$cleanupError',
-        );
-      }
-
-      debugPrint(
-        'Erreur uploadCurrentUserDocument : $e',
-      );
-
-      rethrow;
     }
   }
 
-  // UPLOAD D'UN DOCUMENT D'IDENTITÉ (CNI ou PASSEPORT)
+  // UPLOAD D'UN DOCUMENT D'IDENTITÉ (CNI ou PASSEPORT) — AVEC ANTI-DOUBLON
 
   Future<void> uploadIdentityCardDocuments({
     required Uint8List rectoBytes,
@@ -3449,12 +3578,9 @@ class DatabaseService {
     required DateTime dateExpiration,
     required String paysEmission,
 
-    //Type du document
     String typeDocument = 'carte_identite',
   }) async {
-
     // VALIDATION UTILISATEUR
-
     final userId = currentUserId();
 
     if (userId == null) {
@@ -3462,12 +3588,10 @@ class DatabaseService {
     }
 
     // DÉTERMINATION DU MODE
-
     final bool isPassport = typeDocument == 'passeport';
     final bool requiresVerso = !isPassport;
 
-    //VALIDATION RECTO
-
+    // VALIDATION RECTO
     if (rectoBytes.isEmpty) {
       throw Exception(
         isPassport
@@ -3476,19 +3600,14 @@ class DatabaseService {
       );
     }
 
-
-    //VALIDATION VERSO uniquement pour la CNI
+    // VALIDATION VERSO (uniquement pour la CNI)
     if (requiresVerso) {
       if (versoBytes == null || versoBytes.isEmpty) {
-        throw Exception(
-          'La photo du verso est obligatoire.',
-        );
+        throw Exception('La photo du verso est obligatoire.');
       }
     }
 
-
     // LIMITE DE TAILLE
-
     const maxSize = 50 * 1024 * 1024;
 
     if (rectoBytes.length > maxSize) {
@@ -3507,31 +3626,21 @@ class DatabaseService {
       }
     }
 
-
     // VALIDATION NUMÉRO
-
     final normalizedNumero = numeroDocument.trim();
 
     if (normalizedNumero.isEmpty) {
-      throw Exception(
-        'Le numéro du document est obligatoire.',
-      );
+      throw Exception('Le numéro du document est obligatoire.');
     }
 
-
     // VALIDATION PAYS
-
     final normalizedPays = paysEmission.trim();
 
     if (normalizedPays.isEmpty) {
-      throw Exception(
-        'Le pays d’émission est obligatoire.',
-      );
+      throw Exception('Le pays d’émission est obligatoire.');
     }
 
-
     // VALIDATION DATES
-
     if (dateExpiration.isBefore(dateEmission)) {
       throw Exception(
         'La date d’expiration doit être postérieure '
@@ -3539,9 +3648,32 @@ class DatabaseService {
       );
     }
 
+    // 🔴 ANTI-DOUBLON — VÉRIFICATION AVANT UPLOAD
+    final existing = await findExistingIdentityDocument(
+      numeroDocument: normalizedNumero,
+      paysEmission: normalizedPays,
+      typeDocument: typeDocument,
+    );
+
+    if (existing != null) {
+      final statut = existing['statut']?.toString() ?? 'inconnu';
+      final cote = existing['cote_document']?.toString();
+
+      final coteLabel = cote == 'recto'
+          ? ' (recto)'
+          : cote == 'verso'
+          ? ' (verso)'
+          : '';
+
+      throw Exception(
+        'Ce document$coteLabel est déjà enregistré '
+            'dans votre compte (statut : $statut).\n'
+            'Si vous devez le remplacer, supprimez-le '
+            'depuis vos documents avant de le renvoyer.',
+      );
+    }
 
     // NOMS DES FICHIERS
-
     final timestamp = DateTime.now().millisecondsSinceEpoch;
 
     final rectoFileName = isPassport
@@ -3552,15 +3684,14 @@ class DatabaseService {
         ? 'carte_identite_verso_$timestamp.jpg'
         : null;
 
-
     // PATHS STORAGE
-
     String? rectoPath;
     String? versoPath;
+    String? rectoDocumentId;
+    String? versoDocumentId;
 
     try {
-
-      //UPLOAD RECTO ou photo unique passeport
+      // UPLOAD RECTO (ou photo unique passeport)
       final rectoDocument = await uploadCurrentUserDocument(
         bytes: rectoBytes,
         typeDocument: typeDocument,
@@ -3578,6 +3709,7 @@ class DatabaseService {
       );
 
       rectoPath = rectoDocument['chemin_fichier']?.toString();
+      rectoDocumentId = rectoDocument['id']?.toString();
 
       if (rectoPath == null || rectoPath.trim().isEmpty) {
         throw Exception(
@@ -3585,8 +3717,7 @@ class DatabaseService {
         );
       }
 
-      //UPLOAD VERSO uniquement pour la carte iden
-
+      // UPLOAD VERSO (uniquement CNI)
       if (requiresVerso && versoBytes != null && versoFileName != null) {
         final versoDocument = await uploadCurrentUserDocument(
           bytes: versoBytes,
@@ -3603,6 +3734,7 @@ class DatabaseService {
         );
 
         versoPath = versoDocument['chemin_fichier']?.toString();
+        versoDocumentId = versoDocument['id']?.toString();
 
         if (versoPath == null || versoPath.trim().isEmpty) {
           throw Exception(
@@ -3612,7 +3744,6 @@ class DatabaseService {
       }
 
       // SUCCÈS
-
       if (isPassport) {
         debugPrint('Passeport envoyé : $rectoPath');
       } else {
@@ -3621,8 +3752,7 @@ class DatabaseService {
         debugPrint('VERSO => $versoPath');
       }
     } catch (e) {
-
-      // NETTOYAGE STORAGE
+      // NETTOYAGE STORAGE + DB en cas d'échec
 
       if (rectoPath != null && rectoPath.trim().isNotEmpty) {
         try {
@@ -3631,24 +3761,47 @@ class DatabaseService {
               .remove([rectoPath]);
         } catch (cleanupError) {
           debugPrint(
-            'Impossible de supprimer le fichier : $cleanupError',
+            'Impossible de supprimer le fichier recto : $cleanupError',
           );
         }
+      }
 
-        // SUPPRESSION DE LA LIGNE DB DU RECTO
+      if (versoPath != null && versoPath.trim().isNotEmpty) {
+        try {
+          await supabase.storage
+              .from('documents')
+              .remove([versoPath]);
+        } catch (cleanupError) {
+          debugPrint(
+            'Impossible de supprimer le fichier verso : $cleanupError',
+          );
+        }
+      }
 
+      // Suppression des lignes DB par ID (beaucoup plus fiable
+      // que par numéro/côté, qui pouvait supprimer les mauvaises lignes)
+      if (rectoDocumentId != null) {
         try {
           await supabase
               .from('documents')
               .delete()
-              .eq('user_id', userId)
-              .eq('type_document', typeDocument)
-              .eq('numero_document', normalizedNumero)
-              .eq('cote_document', requiresVerso ? 'recto' : 'recto')
-              .or('cote_document.eq.recto,cote_document.is.null');
+              .eq('id', rectoDocumentId);
         } catch (cleanupDbError) {
           debugPrint(
-            'Impossible de supprimer la ligne DB : $cleanupDbError',
+            'Impossible de supprimer la ligne recto : $cleanupDbError',
+          );
+        }
+      }
+
+      if (versoDocumentId != null) {
+        try {
+          await supabase
+              .from('documents')
+              .delete()
+              .eq('id', versoDocumentId);
+        } catch (cleanupDbError) {
+          debugPrint(
+            'Impossible de supprimer la ligne verso : $cleanupDbError',
           );
         }
       }
@@ -3689,6 +3842,16 @@ class DatabaseService {
     }
   }
 
+
+  // NORMALISATION DU NUMÉRO DE DOCUMENT
+
+  String _normalizeDocumentNumber(String input) {
+    return input
+        .trim()
+        .toUpperCase()
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[-_.]'), '');
+  }
 
   // DOCUMENTS UTILISATEUR
 
