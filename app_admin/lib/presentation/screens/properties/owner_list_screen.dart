@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service/database_service.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../widgets/main_layout.dart';
 import 'package:service/service_locator.dart';
 import 'property_list_screen.dart';
@@ -247,6 +248,14 @@ class _OwnerListScreenState extends State<OwnerListScreen> {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
+
+      if (e is PostgrestException) {
+        debugPrint('❌ Code : ${e.code}');
+        debugPrint('❌ Message : ${e.message}');
+        debugPrint('❌ Détails : ${e.details}');
+        debugPrint('❌ Hint : ${e.hint}');
+      }
+
       debugPrint('Erreur documents propriétaire $userId : $e');
       return [];
     }

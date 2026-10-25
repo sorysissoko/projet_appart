@@ -39,9 +39,10 @@ class SnackBarService {
 
   // CONFIGURATION
   DateTime? _lastCallTime;
+  String? _lastMessage;
 
-  //Temps minimum entre deux SnackBar.
-  static const Duration minInterval = Duration(milliseconds: 800);
+  // Temps minimum entre deux SnackBars IDENTIQUES
+  static const Duration minInterval = Duration(milliseconds: 1500);
 
   // REFRESH
   bool _isRefreshing = false;
@@ -50,6 +51,15 @@ class SnackBarService {
 
   void setRefreshing(bool value) {
     _isRefreshing = value;
+  }
+
+  Future<void> withRefreshBlock(Future<void> Function() action) async {
+    setRefreshing(true);
+    try {
+      await action();
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   // SUCCESS
@@ -132,15 +142,18 @@ class SnackBarService {
     // REFRESH
     if (_isRefreshing) return;
 
-    // ANTI-DOUBLON
+    // ANTI-DOUBLON (uniquement pour le MÊME message)
     final now = DateTime.now();
+    final isDuplicate = _lastMessage == message &&
+        _lastCallTime != null &&
+        now.difference(_lastCallTime!) < minInterval;
 
-    if (_lastCallTime != null &&
-        now.difference(_lastCallTime!) < minInterval) {
-      debugPrint('SnackBarService: Appel trop rapproché ignoré.');
+    if (isDuplicate) {
+      debugPrint('SnackBarService: Doublon ignoré.');
       return;
     }
 
+    _lastMessage = message;
     _lastCallTime = now;
 
     // ATTENDRE LE PROCHAIN FRAME
@@ -212,7 +225,7 @@ class SnackBarService {
 
       final displayIcon = customIcon ?? config.icon;
 
-      messenger.hideCurrentSnackBar();
+      messenger.removeCurrentSnackBar();
 
       messenger.showSnackBar(
         SnackBar(
@@ -266,7 +279,7 @@ class SnackBarService {
               // BOUTON FERMER
               IconButton(
                 onPressed: () {
-                  messenger.hideCurrentSnackBar();
+                  messenger.removeCurrentSnackBar();
                 },
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(
@@ -357,7 +370,7 @@ class SnackBarService {
       }
 
       try {
-        messenger.hideCurrentSnackBar();
+        messenger.removeCurrentSnackBar();
 
         messenger.showSnackBar(
           SnackBar(
@@ -391,7 +404,7 @@ class SnackBarService {
 
   // HIDE
   void hideCurrentSnackBar() {
-    messengerKey.currentState?.hideCurrentSnackBar();
+    messengerKey.currentState?.removeCurrentSnackBar();
   }
 
   // REMOVE
@@ -401,11 +414,6 @@ class SnackBarService {
 
   // CLEAR
   void clearAll() {
-    final messenger = messengerKey.currentState;
-
-    if (messenger == null) return;
-
-    messenger.hideCurrentSnackBar();
-    messenger.removeCurrentSnackBar();
+    messengerKey.currentState?.removeCurrentSnackBar();
   }
 }

@@ -470,7 +470,7 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text('❌ $message'),
@@ -488,7 +488,7 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text('✓ $message'),

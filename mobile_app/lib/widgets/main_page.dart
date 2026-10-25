@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:mobile_app/providers/tab_provider.dart';
+import 'package:service/snackbar_service.dart';
 
 import '../locataire/appartement/acceuil/views/appartement_page.dart';
 import '../locataire/favorite_appart/page_favorite.dart';
@@ -24,6 +25,45 @@ class _MainPageState extends State<MainPage> {
   // Dimensions et marges unifiées pour un ajustement au pixel près
   static const double _notchMargin = 8.0;
   static const double _fabDiameter = 60.0;
+
+  // Flag local pour éviter de ré-afficher le warning
+  bool _certificationWarningShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Attendre la fin du premier frame : le Scaffold est monté
+    // et le ScaffoldMessenger global est disponible.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeShowCertificationWarning();
+    });
+  }
+
+  void _maybeShowCertificationWarning() {
+    if (_certificationWarningShown) return;
+    if (!mounted) return;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+
+    if (args is! Map) return;
+    if (args['showCertificationWarning'] != true) return;
+
+    _certificationWarningShown = true;
+
+    // Petit délai supplémentaire : sur iOS, laisser le temps
+    // à la transition de navigation de se terminer avant
+    // d'afficher la SnackBar.
+    Future.delayed(const Duration(milliseconds: 400), () {
+      if (!mounted) return;
+
+      SnackBarService().showWarning(
+        'Votre compte n\'est pas certifié.\n'
+            'Veuillez certifier votre compte depuis les paramètres.',
+        duration: const Duration(seconds: 6),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -84,7 +124,6 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  // Nouvelle version sans le paramètre label
   Widget _buildNavItem(
       IconData activeIcon,
       IconData inactiveIcon,
@@ -136,6 +175,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 }
+
 class NotchedBorderPainter extends CustomPainter {
   final Color borderColor;
   final double borderWidth;

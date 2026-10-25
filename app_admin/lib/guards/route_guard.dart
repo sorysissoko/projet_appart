@@ -300,7 +300,7 @@ class RouteGuard {
 
     if (showSnackBar) {
       ScaffoldMessenger.of(context)
-          .hideCurrentSnackBar();
+          .removeCurrentSnackBar();
 
       ScaffoldMessenger.of(context)
           .showSnackBar(

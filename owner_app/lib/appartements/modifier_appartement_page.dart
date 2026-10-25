@@ -475,7 +475,7 @@ class _ModifierAppartementPageState extends State<ModifierAppartementPage> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message, style: GoogleFonts.nunito()),
@@ -491,7 +491,7 @@ class _ModifierAppartementPageState extends State<ModifierAppartementPage> {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message, style: GoogleFonts.nunito()),

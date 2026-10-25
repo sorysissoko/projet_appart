@@ -58,7 +58,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
 
       if (messenger == null) return;
 
-      messenger.hideCurrentSnackBar();
+      messenger.removeCurrentSnackBar();
 
       messenger.showSnackBar(
         SnackBar(

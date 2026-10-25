@@ -3756,7 +3756,7 @@ class _DocumentsPageState extends State<DocumentsPage> {
   void _showMessage(String message, {bool error = false}) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).removeCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(

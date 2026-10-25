@@ -490,7 +490,7 @@ class _MainWrapperState
       return;
     }
 
-    messenger.hideCurrentSnackBar();
+    messenger.removeCurrentSnackBar();
 
     messenger.showSnackBar(
       SnackBar(

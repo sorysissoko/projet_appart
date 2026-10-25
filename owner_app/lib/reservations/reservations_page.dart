@@ -1967,7 +1967,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
 
-    messenger.hideCurrentSnackBar();
+    messenger.removeCurrentSnackBar();
 
     messenger.showSnackBar(
       SnackBar(
@@ -2019,7 +2019,7 @@ class _ReservationsPageState extends State<ReservationsPage> {
     final messenger = ScaffoldMessenger.maybeOf(context);
     if (messenger == null) return;
 
-    messenger.hideCurrentSnackBar();
+    messenger.removeCurrentSnackBar();
 
     messenger.showSnackBar(
       SnackBar(

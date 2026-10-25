@@ -52,7 +52,7 @@ class AjouterAppartementPage extends StatelessWidget {
     if (messenger == null) return;
 
     messenger
-      ..hideCurrentSnackBar()
+      ..removeCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message, style: GoogleFonts.nunito()),

@@ -60,31 +60,16 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
   }) {
     switch (type) {
       case SnackBarType.success:
-        SnackBarService().showSuccess(
-          message,
-          duration: duration,
-        );
+        SnackBarService().showSuccess(message, duration: duration);
         break;
-
       case SnackBarType.error:
-        SnackBarService().showError(
-          message,
-          duration: duration,
-        );
+        SnackBarService().showError(message, duration: duration);
         break;
-
       case SnackBarType.warning:
-        SnackBarService().showWarning(
-          message,
-          duration: duration,
-        );
+        SnackBarService().showWarning(message, duration: duration);
         break;
-
       case SnackBarType.info:
-        SnackBarService().showInfo(
-          message,
-          duration: duration,
-        );
+        SnackBarService().showInfo(message, duration: duration);
         break;
     }
   }
@@ -94,16 +79,12 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
     switch (e.code) {
       case 'invalid_credentials':
         return 'Email ou mot de passe incorrect.';
-
       case 'user-not-found':
         return 'Utilisateur non trouvé.';
-
       case 'wrong-password':
         return 'Mot de passe incorrect.';
-
       case 'too-many-requests':
         return 'Trop de tentatives. Réessayez plus tard.';
-
       default:
         return 'Erreur de connexion : ${e.message}';
     }
@@ -172,9 +153,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
       final backend = BackendService();
 
       if (!backend.hasSession) {
-        throw Exception(
-          'Session utilisateur introuvable.',
-        );
+        throw Exception('Session utilisateur introuvable.');
       }
 
       // PROFIL
@@ -182,18 +161,12 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
 
       if (profile == null) {
         await backend.signOut();
-
-        throw Exception(
-          'Profil utilisateur introuvable.',
-        );
+        throw Exception('Profil utilisateur introuvable.');
       }
 
-      final bool estCertifie =
-          profile['est_certifie'] == true;
+      final bool estCertifie = profile['est_certifie'] == true;
 
-      logger.i(
-        'Compte certifié : $estCertifie',
-      );
+      logger.i('Compte certifié : $estCertifie');
 
       // ROLE
       final role = profile['role']
@@ -201,13 +174,10 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
           .trim()
           .toLowerCase();
 
-      logger.i(
-        'Rôle utilisateur : $role',
-      );
+      logger.i('Rôle utilisateur : $role');
 
       if (role != 'locataire') {
         await backend.signOut();
-
         throw Exception(
           'Ce compte n\'est pas autorisé à accéder '
               'à l\'espace locataire.',
@@ -215,44 +185,28 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
       }
 
       // SUCCES
-      logger.i(
-        'Connexion locataire réussie : $email',
-      );
+      logger.i('Connexion locataire réussie : $email');
 
       if (!mounted) return;
 
       _showAppSnackBar(
         message: '🎉 Connexion réussie !\n👋 Ravi de vous revoir',
         type: SnackBarType.success,
+        duration: const Duration(seconds: 2),
       );
 
-      await Future.delayed(
-        const Duration(milliseconds: 500),
-      );
+      await Future.delayed(const Duration(milliseconds: 500));
 
       if (!mounted) return;
 
+      // Navigation + transmission du flag pour MainPage
       Navigator.pushReplacementNamed(
         context,
         '/main',
+        arguments: {
+          'showCertificationWarning': !estCertifie,
+        },
       );
-
-      // AVERTISSEMENT CERTIFICATION
-      if (!estCertifie) {
-        await Future.delayed(
-          const Duration(milliseconds: 700),
-        );
-
-        if (!mounted) return;
-
-        _showAppSnackBar(
-          message:
-          '⚠️ Votre compte n\'est pas certifié.\n'
-              'Veuillez certifier votre compte depuis les paramètres.',
-          type: SnackBarType.warning,
-          duration: const Duration(seconds: 6),
-        );
-      }
     } on AuthException catch (e) {
       if (!mounted) return;
 
@@ -297,28 +251,18 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
 
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: 24.w,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 24.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: 10.h),
-
                     _buildTitleSection(),
-
                     SizedBox(height: 40.h),
-
                     _buildForm(),
-
                     SizedBox(height: 70.h),
-
                     _buildLoginButton(),
-
                     SizedBox(height: 16.h),
-
                     _buildRegisterLink(),
-
                     SizedBox(height: 30.h),
                   ],
                 ),
@@ -333,10 +277,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
   // HEADER
   Widget _buildHeader() {
     return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: 24.w,
-        vertical: 10.h,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
       child: Row(
         children: [
           GestureDetector(
@@ -384,9 +325,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
             color: Colors.black87,
           ),
         ),
-
         SizedBox(height: 8.h),
-
         Text(
           'Ravi de vous revoir ! Connectez-vous.',
           style: GoogleFonts.poppins(
@@ -406,21 +345,13 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildEmailField(),
-
           SizedBox(height: 20.h),
-
           _buildPasswordField(),
-
           SizedBox(height: 12.h),
-
           _buildForgotPasswordLink(),
-
           SizedBox(height: 24.h),
-
           _buildDivider(),
-
           SizedBox(height: 24.h),
-
           _buildGoogleButton(),
         ],
       ),
@@ -433,16 +364,12 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel('ADRESSE EMAIL'),
-
         SizedBox(height: 8.h),
-
         TextFormField(
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
           textInputAction: TextInputAction.next,
-          style: GoogleFonts.poppins(
-            fontSize: 15.sp,
-          ),
+          style: GoogleFonts.poppins(fontSize: 15.sp),
           decoration: _inputDecoration(
             hintText: 'votre@email.com',
             icon: Icons.email_outlined,
@@ -473,16 +400,12 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildLabel('MOT DE PASSE'),
-
         SizedBox(height: 8.h),
-
         TextFormField(
           controller: _passwordController,
           obscureText: !_showPassword,
           textInputAction: TextInputAction.done,
-          style: GoogleFonts.poppins(
-            fontSize: 15.sp,
-          ),
+          style: GoogleFonts.poppins(fontSize: 15.sp),
           decoration: _inputDecoration(
             hintText: '••••••••',
             icon: Icons.lock_outline,
@@ -609,16 +532,10 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
     return Row(
       children: [
         const Expanded(
-          child: Divider(
-            color: _borderColor,
-            thickness: 0.5,
-          ),
+          child: Divider(color: _borderColor, thickness: 0.5),
         ),
-
         Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: 12.w,
-          ),
+          padding: EdgeInsets.symmetric(horizontal: 12.w),
           child: Text(
             'ou',
             style: GoogleFonts.poppins(
@@ -627,12 +544,8 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
             ),
           ),
         ),
-
         const Expanded(
-          child: Divider(
-            color: _borderColor,
-            thickness: 0.5,
-          ),
+          child: Divider(color: _borderColor, thickness: 0.5),
         ),
       ],
     );
@@ -657,10 +570,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16.r),
           ),
-          side: const BorderSide(
-            color: _borderColor,
-            width: 1,
-          ),
+          side: const BorderSide(color: _borderColor, width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -670,9 +580,7 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
               width: 20.w,
               height: 20.w,
             ),
-
             SizedBox(width: 12.w),
-
             Text(
               'Continuer avec Google',
               style: GoogleFonts.poppins(
@@ -736,7 +644,6 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
             fontWeight: FontWeight.w400,
           ),
         ),
-
         GestureDetector(
           onTap: () {
             Navigator.pushReplacementNamed(

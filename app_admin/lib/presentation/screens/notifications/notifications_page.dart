@@ -957,49 +957,112 @@ class _NotificationsPageState extends State<NotificationsPage> {
     debugPrint('🔔 CERTIFICATION NOTIFICATION');
     debugPrint('➡️ userId = $userId');
     debugPrint('➡️ documentId = $documentId');
-    debugPrint('➡️ metadata = $data');
 
-    // ----------------------------------------------------------
-    // FALLBACK 1 : extraire depuis le link si metadata absente
-    // Format attendu : /owners?userId=xxx&documentId=yyy
-    // ----------------------------------------------------------
-
+    // 1. Fallback depuis le link (si le backend a bien mis les paramètres)
     if (userId == null || userId.isEmpty) {
       final link = notification['link']?.toString();
-
       if (link != null && link.isNotEmpty) {
         final uri = Uri.tryParse(link);
-
         userId = uri?.queryParameters['userId'];
         documentId ??= uri?.queryParameters['documentId'];
-
-        debugPrint('🔎 userId extrait du link = $userId');
-        debugPrint('🔎 documentId extrait du link = $documentId');
       }
     }
 
-    // ----------------------------------------------------------
-    // VÉRIFICATION FINALE
-    // ----------------------------------------------------------
+    // 2. Fallback DB (via documentId - qui ne fonctionne pas ici mais reste utile pour d'autres notifs)
+    if ((userId == null || userId.isEmpty) && documentId != null && documentId.isNotEmpty) {
+      debugPrint('🔎 Tentative de récupération du userId via le documentId en DB...');
+      try {
+        final doc = await Supabase.instance.client
+            .from('documents')
+            .select('user_id, residence_id, appartement_id')
+            .eq('id', documentId)
+            .maybeSingle();
 
+        if (doc != null) {
+          userId = doc['user_id']?.toString();
+          if ((userId == null || userId.isEmpty) && doc['residence_id'] != null) {
+            final res = await Supabase.instance.client
+                .from('residences')
+                .select('proprietaire_id')
+                .eq('id', doc['residence_id'])
+                .maybeSingle();
+            userId = res?['proprietaire_id']?.toString();
+          } else if ((userId == null || userId.isEmpty) && doc['appartement_id'] != null) {
+            final app = await Supabase.instance.client
+                .from('appartements')
+                .select('proprietaire_id')
+                .eq('id', doc['appartement_id'])
+                .maybeSingle();
+            userId = app?['proprietaire_id']?.toString();
+          }
+          debugPrint('✅ userId récupéré depuis la DB = $userId');
+        } else {
+          debugPrint('⚠️ Aucun document trouvé avec l\'ID : $documentId');
+        }
+      } catch (e) {
+        debugPrint('❌ Erreur récupération userId depuis DB : $e');
+      }
+    }
+
+    // 3. NOUVEAU FALLBACK : Extraire le nom depuis le message
+    if (userId == null || userId.isEmpty) {
+      final message = notification['message']?.toString() ?? '';
+      debugPrint('🔎 Analyse du message pour trouver l\'utilisateur : "$message"');
+
+      // On cherche le pattern "par [Nom Prénom]" ou "par [Prénom Nom]"
+      // Exemple : "Nouveau document (RIB) soumis par Daouda Sissoko."
+      final regex = RegExp(r'par\s+(.+?)(?:\.|$)', caseSensitive: false);
+      final match = regex.firstMatch(message);
+
+      if (match != null && match.group(1) != null) {
+        final fullName = match.group(1)!.trim();
+        debugPrint('🔎 Nom extrait du message : "$fullName"');
+
+        // On cherche l'utilisateur dans la table users par son nom complet
+        try {
+          final users = await Supabase.instance.client
+              .from('users')
+              .select('id, nom, prenom')
+              .or('nom.ilike.%$fullName%,prenom.ilike.%$fullName%')
+              .limit(5); // On limite pour éviter les doublons
+
+          if (users.isNotEmpty) {
+            // Si plusieurs utilisateurs matchent, on prend le premier (ou on pourrait affiner)
+            userId = users.first['id']?.toString();
+            debugPrint('✅ userId récupéré depuis le nom = $userId (${users.first['prenom']} ${users.first['nom']})');
+          } else {
+            // Deuxième essai : chercher par prénom ET nom séparément
+            final parts = fullName.split(' ');
+            if (parts.length >= 2) {
+              final prenom = parts[0];
+              final nom = parts.sublist(1).join(' ');
+              final users2 = await Supabase.instance.client
+                  .from('users')
+                  .select('id, nom, prenom')
+                  .ilike('prenom', '%$prenom%')
+                  .ilike('nom', '%$nom%')
+                  .limit(1);
+
+              if (users2.isNotEmpty) {
+                userId = users2.first['id']?.toString();
+                debugPrint('✅ userId récupéré par prénom/nom = $userId');
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('❌ Erreur recherche utilisateur par nom : $e');
+        }
+      }
+    }
+
+    // 4. VÉRIFICATION FINALE
     if (userId == null || userId.isEmpty) {
       debugPrint('⚠️ Notification certification sans user_id');
-
-      _showError(
-        'Cette notification ne contient pas l’utilisateur concerné.',
-      );
-
+      _showError('Impossible de retrouver l\'utilisateur concerné par ce document.');
       return;
     }
 
-    // ----------------------------------------------------------
-    // Rôle : metadata puis fallback DB
-    // ----------------------------------------------------------
-
-    String? role = data['role']
-        ?.toString()
-        .trim()
-        .toLowerCase();
+    String? role = data['role']?.toString().trim().toLowerCase();
 
     if (role == null || role.isEmpty) {
       try {
@@ -1009,50 +1072,27 @@ class _NotificationsPageState extends State<NotificationsPage> {
             .eq('id', userId)
             .maybeSingle();
 
-        role = user?['role']
-            ?.toString()
-            .trim()
-            .toLowerCase();
-
-        debugPrint('🔎 Rôle récupéré depuis users = $role');
+        role = user?['role']?.toString().trim().toLowerCase();
+        debugPrint('Rôle récupéré depuis users = $role');
       } catch (e) {
-        debugPrint('❌ Impossible de récupérer le rôle : $e');
-
-        _showError(
-          'Impossible d’identifier le type d’utilisateur.',
-        );
-
+        debugPrint('Impossible de récupérer le rôle : $e');
+        _showError('Impossible d’identifier le type d’utilisateur.');
         return;
       }
     }
 
-    debugPrint('➡️ role final = $role');
-
-    // ----------------------------------------------------------
-    // Choix de la route
-    // ----------------------------------------------------------
-
     String? route;
-
     if (role == 'proprietaire') {
       route = '/owners';
     } else if (role == 'locataire') {
       route = '/users';
     } else {
-      debugPrint('⚠️ Rôle utilisateur invalide : $role');
-
-      _showError(
-        'Le rôle de cet utilisateur est invalide.',
-      );
-
+      debugPrint('Rôle utilisateur invalide : $role');
+      _showError('Le rôle de cet utilisateur est invalide.');
       return;
     }
 
-    debugPrint('➡️ ROUTE CHOISIE = $route');
-
-    // ----------------------------------------------------------
-    // Navigation
-    // ----------------------------------------------------------
+    debugPrint('ROUTE CHOISIE = $route');
 
     if (!mounted) return;
 

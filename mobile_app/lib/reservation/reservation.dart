@@ -3365,7 +3365,7 @@ class _ReservationPageState extends State<ReservationPage> {
         action: SnackBarAction(
           label: 'OK',
           textColor: Colors.white70,
-          onPressed: () => messenger.hideCurrentSnackBar(),
+          onPressed: () => messenger.removeCurrentSnackBar(),
         ),
       ),
     );
