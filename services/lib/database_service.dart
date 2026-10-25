@@ -383,7 +383,7 @@ class DatabaseService {
     }
   }
 
-  
+
   Future<void> updateAppartement({
     required String appartementId,
     String? residenceId,

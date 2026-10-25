@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:service/auth_service.dart';
 import 'package:service/database_service.dart';
 import 'package:service/service_locator.dart';
+import 'package:service/snackbar_service.dart';
 import '../../../widgets/parametre_header.dart';
 import 'identity_capture_modal.dart';
 
@@ -39,9 +40,8 @@ class _DocumentsVerificationPageState
     _loadDocuments();
   }
 
-
   // CHARGEMENT DES DOCUMENTS
-    Future<void> _loadDocuments({
+  Future<void> _loadDocuments({
     bool showSkeleton = true,
   }) async {
     if (!mounted) return;
@@ -79,19 +79,43 @@ class _DocumentsVerificationPageState
     }
   }
 
-
   // OUVERTURE DU FLUX ADAPTÉ AU TYPE DE DOCUMENT
-  void _openDocumentFlow(String typeDocument) {
+  void _openDocumentFlow(String typeDocument) async {
     if (typeDocument == _cniType || typeDocument == _passportType) {
+      // Vérification anti-doublon côté UI
+      // (avant même d'ouvrir le modal, pour éviter un aller-retour réseau)
+      final active = _documents.where((d) {
+        final t = d['type_document']?.toString();
+        final s = d['statut']?.toString();
+        return t == typeDocument &&
+            (s == 'en_attente' ||
+                s == 'en_verification' ||
+                s == 'valide');
+      }).toList();
+
+      if (active.isNotEmpty) {
+        final statut = active.first['statut']?.toString() ?? '';
+        final statutLabel = statut == 'valide'
+            ? 'déjà validé'
+            : statut == 'en_verification'
+            ? 'en cours de vérification'
+            : 'en attente de vérification';
+
+        SnackBarService().showInfo(
+          'Vous avez déjà un document de ce type $statutLabel. '
+              'Supprimez-le depuis vos documents avant d\'en ajouter un nouveau.',
+        );
+        return;
+      }
+
       _showIdentityCaptureModal(typeDocument: typeDocument);
     } else {
       _showDocumentSourceSheet(typeDocument: typeDocument);
     }
   }
 
-
-  // MODAL CARTE D'IDENTITÉ PASSEPORT
-    Future<void> _showIdentityCaptureModal({
+  // MODAL CARTE D'IDENTITÉ / PASSEPORT
+  Future<void> _showIdentityCaptureModal({
     String typeDocument = 'carte_identite',
   }) async {
     if (!mounted) return;
@@ -105,6 +129,7 @@ class _DocumentsVerificationPageState
       useSafeArea: true,
       isDismissible: true,
       enableDrag: true,
+      useRootNavigator: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(26.r),
@@ -118,7 +143,6 @@ class _DocumentsVerificationPageState
             documentLabel: isPassport
                 ? 'Passeport'
                 : 'Carte d’identité',
-
             onSubmit: ({
               required Uint8List rectoBytes,
               required Uint8List? versoBytes,
@@ -127,6 +151,8 @@ class _DocumentsVerificationPageState
               required DateTime dateExpiration,
               required String paysEmission,
             }) async {
+              // ⚠️ Laisser l'exception remonter au modal
+              // (elle sera nettoyée et affichée par _cleanErrorMessage)
               await _db.uploadIdentityCardDocuments(
                 rectoBytes: rectoBytes,
                 versoBytes: versoBytes,
@@ -149,23 +175,14 @@ class _DocumentsVerificationPageState
 
       final label = isPassport ? 'passeport' : 'carte d’identité';
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Votre $label a été envoyé. '
-                'Il est maintenant en attente de vérification.',
-          ),
-          backgroundColor: Colors.green,
-          duration: const Duration(seconds: 4),
-        ),
+      SnackBarService().showSuccess(
+        'Votre $label a été envoyé. '
+            'Il est maintenant en attente de vérification.',
       );
     }
   }
 
-
-
   // BUILD
-
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -193,9 +210,8 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // CONTENU
-    Widget _buildContent() {
+  Widget _buildContent() {
     if (_isLoading) {
       return _buildSkeleton();
     }
@@ -244,9 +260,8 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // INTRODUCTION
-    Widget _buildIntroCard() {
+  Widget _buildIntroCard() {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(16.w),
@@ -306,8 +321,7 @@ class _DocumentsVerificationPageState
     );
   }
 
-
-  // CHOIX DE LA SOURCE PERMIS UNIQUEMENT
+  // CHOIX DE LA SOURCE
   Future<void> _showDocumentSourceSheet({
     required String typeDocument,
   }) async {
@@ -315,6 +329,7 @@ class _DocumentsVerificationPageState
 
     await showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
@@ -451,9 +466,8 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // DOCUMENT IDENTITÉ ACTIF
-    Map<String, dynamic>? _getActiveIdentityDocument() {
+  Map<String, dynamic>? _getActiveIdentityDocument() {
     final activeDocuments = _documents.where((document) {
       final statut = document['statut']?.toString();
 
@@ -484,9 +498,7 @@ class _DocumentsVerificationPageState
     return activeDocuments.first;
   }
 
-
   // TYPE DE DOCUMENT VERROUILLÉ
-
   bool _isDocumentTypeLocked(
       String typeDocument,
       ) {
@@ -503,9 +515,8 @@ class _DocumentsVerificationPageState
     return activeType != typeDocument;
   }
 
-
   // DOCUMENT REFUSÉ
-    bool _hasRefusedDocument(
+  bool _hasRefusedDocument(
       String typeDocument,
       ) {
     return _documents.any(
@@ -517,9 +528,7 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // CARTE D'IDENTITÉ — DOSSIER RECTO + VERSO
-
   Map<String, dynamic>? _getLatestIdentityCardDocument() {
     final cniDocuments = _documents
         .where(
@@ -633,9 +642,7 @@ class _DocumentsVerificationPageState
     return representative;
   }
 
-
   // TYPE DE DOCUMENT
-
   Widget _buildDocumentTypeCard({
     required String title,
     required String subtitle,
@@ -771,9 +778,7 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // ACTION DOCUMENT
-
   Widget _buildDocumentAction({
     required Map<String, dynamic>? document,
     required String typeDocument,
@@ -797,7 +802,6 @@ class _DocumentsVerificationPageState
     }
 
     // AUCUN DOCUMENT
-
     if (document == null) {
       return Container(
         decoration: BoxDecoration(
@@ -820,7 +824,6 @@ class _DocumentsVerificationPageState
     document['statut']?.toString();
 
     // VALIDÉ
-
     if (statut == 'valide') {
       return Container(
         width: 40.w,
@@ -841,7 +844,6 @@ class _DocumentsVerificationPageState
     }
 
     // REFUSÉ
-
     if (statut == 'refuse') {
       return Container(
         decoration: BoxDecoration(
@@ -863,7 +865,6 @@ class _DocumentsVerificationPageState
     }
 
     // EXPIRÉ
-
     if (statut == 'expire') {
       return Container(
         decoration: BoxDecoration(
@@ -885,7 +886,6 @@ class _DocumentsVerificationPageState
     }
 
     // EN ATTENTE / EN VÉRIFICATION
-
     return Container(
       width: 40.w,
       height: 40.w,
@@ -909,7 +909,6 @@ class _DocumentsVerificationPageState
   }
 
   // DOCUMENT LE PLUS RÉCENT D'UN TYPE
-
   Map<String, dynamic>? _findDocument(
       String typeDocument,
       ) {
@@ -945,7 +944,6 @@ class _DocumentsVerificationPageState
   }
 
   // STATUT DU DOCUMENT
-
   String _getDocumentStatusText(
       Map<String, dynamic> document,
       ) {
@@ -1035,7 +1033,6 @@ class _DocumentsVerificationPageState
   }
 
   // COULEUR DU STATUT
-
   Color _getStatusColor(dynamic statut) {
     switch (statut?.toString()) {
       case 'valide':
@@ -1055,7 +1052,6 @@ class _DocumentsVerificationPageState
   }
 
   // TITRE SECTION
-
   Widget _buildSectionTitle(
       String title,
       ) {
@@ -1077,7 +1073,6 @@ class _DocumentsVerificationPageState
   }
 
   // ERROR
-
   Widget _buildError() {
     return Center(
       child: Column(
@@ -1112,9 +1107,7 @@ class _DocumentsVerificationPageState
     );
   }
 
-
   // SKELETON
-
   Widget _buildSkeleton() {
     return SingleChildScrollView(
       physics: const BouncingScrollPhysics(),
@@ -1157,7 +1150,6 @@ class _DocumentsVerificationPageState
 }
 
 // SKELETON BOX
-
 class _SkeletonBox extends StatefulWidget {
   const _SkeletonBox({
     this.width,

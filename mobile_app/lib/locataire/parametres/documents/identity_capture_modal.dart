@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:service/snackbar_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class IdentityCaptureModal extends StatefulWidget {
   const IdentityCaptureModal({
@@ -442,6 +443,11 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
+
+    // Fermer le clavier : le bouton d'envoi peut être masqué
+    // quand l'utilisateur est en train de saisir.
+    FocusScope.of(context).unfocus();
+
     if (!_validateForm()) return;
 
     setState(() => _isSubmitting = true);
@@ -461,8 +467,45 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
-      _showError('Impossible d’envoyer les documents : $e');
+      _showError(_cleanErrorMessage(e));
     }
+  }
+
+  // NETTOYAGE DES MESSAGES D'ERREUR
+
+  String _cleanErrorMessage(Object e) {
+    // Erreurs Supabase connues → message utilisateur clair
+    if (e is AuthException) {
+      return 'Session expirée. Veuillez vous reconnecter.';
+    }
+
+    if (e is StorageException) {
+      return 'Erreur lors du transfert du fichier. '
+          'Vérifiez votre connexion et réessayez.';
+    }
+
+    // Nettoyage générique
+    String message = e.toString();
+
+    // Préfixe Flutter standard
+    if (message.startsWith('Exception: ')) {
+      message = message.substring('Exception: '.length);
+    }
+
+    // Exceptions Supabase restantes :
+    // "ClassName(message: ..., code: ...)"
+    final classPattern = RegExp(
+      r'^(PostgrestException|FunctionException)'
+      r'\(message:\s*(.+?)(?:,\s*\w+:.*)?\)$',
+      dotAll: true,
+    );
+
+    final match = classPattern.firstMatch(message);
+    if (match != null) {
+      return match.group(2)?.trim() ?? message;
+    }
+
+    return message;
   }
 
   // MESSAGES
@@ -474,10 +517,7 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
 
   void _showInfo(String message) {
     if (!mounted) return;
-    SnackBarService().showSuccess(
-      message,
-      icon: Icons.check_rounded,
-    );
+    SnackBarService().showInfo(message);
   }
 
   // BUILD PRINCIPAL
