@@ -61,6 +61,20 @@ class _DocumentsVerificationPageState
       final documents =
       await _db.getCurrentUserIdentityDocuments();
 
+      // 🔍 LOGS DE DIAGNOSTIC
+      debugPrint(
+        '🔍 _loadDocuments → ${documents.length} document(s)',
+      );
+      for (final doc in documents) {
+        debugPrint(
+          '  - type=${doc['type_document']} | '
+              'cote=${doc['cote_document']} | '
+              'statut=${doc['statut']} | '
+              'user_id=${doc['user_id']} | '
+              'created=${doc['created_at']}',
+        );
+      }
+
       if (!mounted) return;
 
       setState(() {
@@ -69,6 +83,8 @@ class _DocumentsVerificationPageState
         _errorMessage = null;
       });
     } catch (e) {
+      debugPrint('❌ _loadDocuments erreur : $e');
+
       if (!mounted) return;
 
       setState(() {
@@ -83,7 +99,6 @@ class _DocumentsVerificationPageState
   void _openDocumentFlow(String typeDocument) async {
     if (typeDocument == _cniType || typeDocument == _passportType) {
       // Vérification anti-doublon côté UI
-      // (avant même d'ouvrir le modal, pour éviter un aller-retour réseau)
       final active = _documents.where((d) {
         final t = d['type_document']?.toString();
         final s = d['statut']?.toString();
@@ -168,7 +183,17 @@ class _DocumentsVerificationPageState
       },
     );
 
+    // 🔍 LOG DIAGNOSTIC
+    debugPrint('🔍 Modal fermé, result = $result');
+
     if (result == true && mounted) {
+      // 🔴 FIX iOS : laisser le temps à Supabase de propager l'écriture
+      // avant de recharger. Sur iOS, la lecture qui suit immédiatement
+      // une écriture peut renvoyer l'ancien état (cache / latence RLS).
+      await Future.delayed(const Duration(milliseconds: 400));
+
+      if (!mounted) return;
+
       await _loadDocuments(showSkeleton: false);
 
       if (!mounted) return;

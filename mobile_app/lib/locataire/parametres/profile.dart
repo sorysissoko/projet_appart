@@ -1133,21 +1133,6 @@ class _ProfilePageState extends State<ProfilePage> {
           height: 35.h,
         ),
 
-        // ALERTE CERTIFICATION
-        if (!estCertifie) ...[
-          Padding(
-            padding:
-            EdgeInsets.symmetric(
-              horizontal: 16.w,
-            ),
-            child:
-            _buildCertificationAlert(),
-          ),
-          SizedBox(
-            height: 20.h,
-          ),
-        ],
-
         // CONTENU
         Expanded(
           child:
@@ -1159,6 +1144,17 @@ class _ProfilePageState extends State<ProfilePage> {
               CrossAxisAlignment
                   .stretch,
               children: [
+
+                SizedBox(height: 35.h),
+
+                // ALERTE CERTIFICATION (au-dessus des actions rapides)
+                if (!estCertifie) ...[
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: _buildCertificationAlert(),
+                  ),
+                  SizedBox(height: 20.h),
+                ],
 
                 //ACTIONS RAPIDES
                 Padding(
