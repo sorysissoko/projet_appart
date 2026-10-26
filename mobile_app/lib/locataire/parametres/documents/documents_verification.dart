@@ -137,7 +137,7 @@ class _DocumentsVerificationPageState
 
     final isPassport = typeDocument == _passportType;
 
-    final result = await showModalBottomSheet<bool>(
+    final dynamic result = await showModalBottomSheet<dynamic>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -166,8 +166,6 @@ class _DocumentsVerificationPageState
               required DateTime dateExpiration,
               required String paysEmission,
             }) async {
-              // ⚠️ Laisser l'exception remonter au modal
-              // (elle sera nettoyée et affichée par _cleanErrorMessage)
               await _db.uploadIdentityCardDocuments(
                 rectoBytes: rectoBytes,
                 versoBytes: versoBytes,
@@ -186,10 +184,9 @@ class _DocumentsVerificationPageState
     // 🔍 LOG DIAGNOSTIC
     debugPrint('🔍 Modal fermé, result = $result');
 
+    // ✅ SUCCÈS
     if (result == true && mounted) {
-      // 🔴 FIX iOS : laisser le temps à Supabase de propager l'écriture
-      // avant de recharger. Sur iOS, la lecture qui suit immédiatement
-      // une écriture peut renvoyer l'ancien état (cache / latence RLS).
+      // Laisser Supabase propager l'écriture (fix iOS)
       await Future.delayed(const Duration(milliseconds: 400));
 
       if (!mounted) return;
@@ -204,9 +201,18 @@ class _DocumentsVerificationPageState
         'Votre $label a été envoyé. '
             'Il est maintenant en attente de vérification.',
       );
+      return;
     }
-  }
 
+    // ❌ ERREUR renvoyée par le modal
+    if (result is Map && result['success'] == false && mounted) {
+      final error = result['error']?.toString() ?? 'Erreur inconnue';
+      SnackBarService().showError(error);
+      return;
+    }
+
+    // ℹ️ Annulation : rien à faire
+  }
   // BUILD
   @override
   Widget build(BuildContext context) {
@@ -567,6 +573,7 @@ class _DocumentsVerificationPageState
       return null;
     }
 
+    // Grouper par numéro de document
     final Map<String, List<Map<String, dynamic>>> groups = {};
 
     for (final document in cniDocuments) {
@@ -581,6 +588,7 @@ class _DocumentsVerificationPageState
       groups[key]!.add(document);
     }
 
+    // Trouver le groupe le plus récent
     List<Map<String, dynamic>>? latestGroup;
     DateTime latestDate =
     DateTime.fromMillisecondsSinceEpoch(0);
@@ -594,56 +602,68 @@ class _DocumentsVerificationPageState
           document['created_at']?.toString() ?? '',
         );
 
-        if (createdAt != null &&
-            createdAt.isAfter(groupDate)) {
+        if (createdAt != null && createdAt.isAfter(groupDate)) {
           groupDate = createdAt;
         }
       }
 
-      if (latestGroup == null ||
-          groupDate.isAfter(latestDate)) {
+      if (latestGroup == null || groupDate.isAfter(latestDate)) {
         latestGroup = group;
         latestDate = groupDate;
       }
     }
 
-    if (latestGroup == null ||
-        latestGroup.isEmpty) {
+    if (latestGroup == null || latestGroup.isEmpty) {
       return null;
     }
 
+    // 🔴 Pour chaque côté (recto, verso), garder UNIQUEMENT
+    // le document le plus récent — ne pas fusionner les statuts
+    // de plusieurs documents différents du même côté.
     Map<String, dynamic>? recto;
     Map<String, dynamic>? verso;
 
+    DateTime rectoDate =
+    DateTime.fromMillisecondsSinceEpoch(0);
+    DateTime versoDate =
+    DateTime.fromMillisecondsSinceEpoch(0);
+
     for (final document in latestGroup) {
-      final cote =
-      document['cote_document']?.toString();
+      final cote = document['cote_document']?.toString();
+      final createdAt = DateTime.tryParse(
+        document['created_at']?.toString() ?? '',
+      ) ?? DateTime.fromMillisecondsSinceEpoch(0);
 
       if (cote == 'recto') {
-        recto = document;
+        if (recto == null || createdAt.isAfter(rectoDate)) {
+          recto = document;
+          rectoDate = createdAt;
+        }
       } else if (cote == 'verso') {
-        verso = document;
+        if (verso == null || createdAt.isAfter(versoDate)) {
+          verso = document;
+          versoDate = createdAt;
+        }
       }
     }
 
+    final hasRecto = recto != null;
+    final hasVerso = verso != null;
+
+    // Statut global — basé UNIQUEMENT sur les documents
+    // les plus récents de chaque côté
     String statutGlobal;
 
     final rectoStatus = recto?['statut']?.toString();
     final versoStatus = verso?['statut']?.toString();
 
-    final hasRecto = recto != null;
-    final hasVerso = verso != null;
-
     if (!hasRecto || !hasVerso) {
       statutGlobal = 'en_attente';
-    } else if (rectoStatus == 'refuse' ||
-        versoStatus == 'refuse') {
+    } else if (rectoStatus == 'refuse' || versoStatus == 'refuse') {
       statutGlobal = 'refuse';
-    } else if (rectoStatus == 'expire' ||
-        versoStatus == 'expire') {
+    } else if (rectoStatus == 'expire' || versoStatus == 'expire') {
       statutGlobal = 'expire';
-    } else if (rectoStatus == 'valide' &&
-        versoStatus == 'valide') {
+    } else if (rectoStatus == 'valide' && versoStatus == 'valide') {
       statutGlobal = 'valide';
     } else if (rectoStatus == 'en_verification' ||
         versoStatus == 'en_verification') {
@@ -652,8 +672,7 @@ class _DocumentsVerificationPageState
       statutGlobal = 'en_attente';
     }
 
-    final representative =
-    Map<String, dynamic>.from(
+    final representative = Map<String, dynamic>.from(
       recto ?? verso!,
     );
 
@@ -868,24 +887,55 @@ class _DocumentsVerificationPageState
       );
     }
 
-    // REFUSÉ
+    // REFUSÉ — bouton avec menu (soumettre à nouveau ou supprimer)
     if (statut == 'refuse') {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(
-            alpha: 0.10,
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Bouton supprimer
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: IconButton(
+              onPressed: () => _confirmDeleteDocument(document),
+              icon: Icon(
+                Icons.delete_outline,
+                color: Colors.red[700],
+                size: 21.sp,
+              ),
+              tooltip: 'Supprimer',
+              constraints: BoxConstraints(
+                minWidth: 40.w,
+                minHeight: 40.w,
+              ),
+              padding: EdgeInsets.zero,
+            ),
           ),
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        child: IconButton(
-          onPressed: () => _openDocumentFlow(typeDocument),
-          icon: Icon(
-            Icons.refresh,
-            color: Colors.red[700],
-            size: 21.sp,
+          SizedBox(width: 6.w),
+          // Bouton re-soumettre
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: IconButton(
+              onPressed: () => _openDocumentFlow(typeDocument),
+              icon: Icon(
+                Icons.refresh,
+                color: Colors.red[700],
+                size: 21.sp,
+              ),
+              tooltip: 'Soumettre à nouveau',
+              constraints: BoxConstraints(
+                minWidth: 40.w,
+                minHeight: 40.w,
+              ),
+              padding: EdgeInsets.zero,
+            ),
           ),
-          tooltip: 'Soumettre à nouveau',
-        ),
+        ],
       );
     }
 
@@ -932,6 +982,97 @@ class _DocumentsVerificationPageState
       ),
     );
   }
+
+  Future<void> _confirmDeleteDocument(
+      Map<String, dynamic> document,
+      ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        title: Text(
+          'Supprimer ce document ?',
+          style: GoogleFonts.poppins(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        content: Text(
+          'Vous pourrez ensuite soumettre un nouveau document. '
+              'Cette action est irréversible.',
+          style: GoogleFonts.inter(fontSize: 13.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Annuler',
+              style: GoogleFonts.inter(
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Supprimer',
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      // 🔴 Si c'est un dossier CNI (recto + verso), supprimer les deux
+      final recto = document['_cni_recto'] as Map<String, dynamic>?;
+      final verso = document['_cni_verso'] as Map<String, dynamic>?;
+
+      final idsToDelete = <String>{};
+
+      if (recto != null) {
+        final id = recto['id']?.toString();
+        if (id != null && id.isNotEmpty) idsToDelete.add(id);
+      }
+      if (verso != null) {
+        final id = verso['id']?.toString();
+        if (id != null && id.isNotEmpty) idsToDelete.add(id);
+      }
+
+      // Fallback : si pas de dossier (document simple)
+      if (idsToDelete.isEmpty) {
+        final id = document['id']?.toString();
+        if (id != null && id.isNotEmpty) idsToDelete.add(id);
+      }
+
+      for (final id in idsToDelete) {
+        await _db.deleteCurrentUserDocument(id);
+      }
+
+      if (!mounted) return;
+
+      await _loadDocuments(showSkeleton: false);
+
+      if (!mounted) return;
+
+      SnackBarService().showSuccess('Document supprimé.');
+    } catch (e) {
+      if (!mounted) return;
+      SnackBarService().showError(
+        'Impossible de supprimer le document : $e',
+      );
+    }
+  }
+
 
   // DOCUMENT LE PLUS RÉCENT D'UN TYPE
   Map<String, dynamic>? _findDocument(

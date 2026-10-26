@@ -443,11 +443,7 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
 
   Future<void> _submit() async {
     if (_isSubmitting) return;
-
-    // Fermer le clavier : le bouton d'envoi peut être masqué
-    // quand l'utilisateur est en train de saisir.
     FocusScope.of(context).unfocus();
-
     if (!_validateForm()) return;
 
     setState(() => _isSubmitting = true);
@@ -463,11 +459,17 @@ class _IdentityCaptureModalState extends State<IdentityCaptureModal> {
       );
 
       if (!mounted) return;
+      // ✅ Succès : ferme le modal avec `true`
       Navigator.of(context).pop(true);
     } catch (e) {
       if (!mounted) return;
       setState(() => _isSubmitting = false);
-      _showError(_cleanErrorMessage(e));
+
+      // ❌ Échec : ferme le modal avec un objet contenant l'erreur
+      Navigator.of(context).pop({
+        'success': false,
+        'error': _cleanErrorMessage(e),
+      });
     }
   }
 
