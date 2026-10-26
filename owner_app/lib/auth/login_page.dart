@@ -227,15 +227,16 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
         return;
       }
 
+      //Récupérer le profil pour connaître la certification
+      final bool estCertifie = await auth.isCertified();
+
       _showAppSnackBar(
         message: '👋 Ravi de vous revoir',
         type: SnackBarType.success,
         duration: const Duration(seconds: 2),
       );
 
-      await Future.delayed(
-        const Duration(milliseconds: 500),
-      );
+      await Future.delayed(const Duration(milliseconds: 500));
 
       if (!mounted) return;
 
@@ -243,6 +244,9 @@ class _ConnexionWidgetState extends State<ConnexionWidget> {
         context,
         '/owner-dashboard',
             (route) => false,
+        arguments: {
+          'showCertificationWarning': !estCertifie,
+        },
       );
     } catch (e) {
       if (!mounted) return;

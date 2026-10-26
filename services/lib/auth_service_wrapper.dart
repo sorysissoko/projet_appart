@@ -347,6 +347,42 @@ class AuthServiceWrapper extends ChangeNotifier {
     return SecurityService.canAccessTenantApp(role);
   }
 
+
+  // ============================================================
+  // 🔴 NOUVEAU : VÉRIFICATION CERTIFICATION
+  // ============================================================
+
+  /// Vérifie si l'utilisateur actuellement connecté est certifié.
+  ///
+  /// Retourne `true` si `est_certifie = true` en base, `false` sinon.
+  /// Retourne `false` en cas d'erreur pour éviter de bloquer l'UI.
+  Future<bool> isCertified() async {
+    if (_disposed) {
+      return false;
+    }
+
+    final user = _currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      final profile = await getProfile();
+
+      if (_disposed) return false;
+
+      return profile?['est_certifie'] == true;
+    } catch (e) {
+      ErrorHandler.log(
+        e,
+        context: 'isCertified',
+      );
+
+      return false;
+    }
+  }
+
+
   // CONNEXION
   Future<bool> signIn(
       String email,
@@ -1346,7 +1382,7 @@ class AuthServiceWrapper extends ChangeNotifier {
 
 
   // NOTIFY SÉCURISÉ
-    void _safeNotify() {
+  void _safeNotify() {
     if (_disposed) {
       return;
     }

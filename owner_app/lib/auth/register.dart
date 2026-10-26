@@ -468,23 +468,23 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (success) {
         _showAppSnackBar(
-          message:
-          '🎉 Bienvenue $prenom $nom !',
+          message: '🎉 Bienvenue $prenom $nom !',
           type: SnackBarType.success,
-          duration:
-          const Duration(seconds: 5),
+          duration: const Duration(seconds: 5),
         );
 
-        await Future.delayed(
-          const Duration(milliseconds: 500),
-        );
+        await Future.delayed(const Duration(milliseconds: 500));
 
         if (!mounted) return;
 
+        // 🔴 NOUVEAU : Nouveau compte = jamais certifié → warning garanti
         Navigator.pushNamedAndRemoveUntil(
           context,
           '/owner-dashboard',
               (route) => false,
+          arguments: {
+            'showCertificationWarning': true,
+          },
         );
       } else {
         _showAppSnackBar(

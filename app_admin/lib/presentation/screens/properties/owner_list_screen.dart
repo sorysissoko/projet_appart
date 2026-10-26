@@ -983,6 +983,24 @@ class _OwnerListScreenState extends State<OwnerListScreen> {
           return type.contains('rib') || type.contains('bancaire');
         }
 
+        if (def.key == 'rib') {
+          return type.contains('rib') ||
+              type.contains('bancaire') ||
+              type.contains('iban') ||
+              type.contains('relevé') ||
+              type.contains('compte');
+        }
+
+        if (def.key == 'rib') {
+          final cat = doc['categorie']?.toString().toLowerCase() ?? '';
+          return cat == 'administratif' &&
+              (type.contains('rib') ||
+                  type.contains('bancaire') ||
+                  type.contains('iban') ||
+                  type.contains('relevé') ||
+                  type.contains('compte'));
+        }
+
         return false;
       }).toList();
 
